@@ -1,0 +1,19 @@
+//post models for prisma
+
+model Post {
+  CUID String @id @default(cuid())
+  userID String @unique
+  user User @relation(fields: [userID], references: [CUID])
+  content String
+  area String
+  county String
+  time DateTime @default(now())
+  postReplies PostReplies[]
+}
+
+model PostReplies {
+  postID String
+  post Post @relation(fields: [postID], references: [CUID])
+  replyID String @unique
+  reply Post @relation(fields: [replyID], references: [CUID])
+}
