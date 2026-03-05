@@ -38,7 +38,7 @@ model UserSettings {
   userID    String  @unique
   user      User    @relation(fields: [userID], references: [CUID])
   active    Int     @default(0)
-  privilage Boolean @default(false)
+  privilege Boolean @default(false)
   dark      Boolean @default(false)
   anon      Boolean @default(false)
 }

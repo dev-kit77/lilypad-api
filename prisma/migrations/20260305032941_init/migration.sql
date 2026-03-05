@@ -21,7 +21,7 @@ CREATE TABLE "UserProfile" (
 CREATE TABLE "UserSettings" (
     "userID" TEXT NOT NULL,
     "active" INTEGER NOT NULL DEFAULT 0,
-    "privilage" BOOLEAN NOT NULL DEFAULT false,
+    "privilege" BOOLEAN NOT NULL DEFAULT false,
     "dark" BOOLEAN NOT NULL DEFAULT false,
     "anon" BOOLEAN NOT NULL DEFAULT false
 );
