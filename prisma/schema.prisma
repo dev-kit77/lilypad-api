@@ -12,3 +12,63 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  CUID        String        @id @default(cuid())
+  email       String        @unique
+  username    String        @unique
+  token       String        @unique
+  hash        String        @unique
+  posts       Post[]
+  profile     UserProfile?
+  settings    UserSettings?
+  reports     Report[]      @relation("reportee")
+  userReports Report[]      @relation("reported")
+}
+
+model UserProfile {
+  userID String @unique
+  user   User   @relation(fields: [userID], references: [CUID])
+  name   String
+  bio    String
+  status String
+}
+
+model UserSettings {
+  userID    String  @unique
+  user      User    @relation(fields: [userID], references: [CUID])
+  active    Int     @default(0)
+  privilage Boolean @default(false)
+  dark      Boolean @default(false)
+  anon      Boolean @default(false)
+}
+
+model Post {
+  CUID         String   @id @default(cuid())
+  userID       String   @unique
+  user         User     @relation(fields: [userID], references: [CUID])
+  content      String
+  area         String
+  county       String
+  postcode     String
+  time         DateTime @default(now())
+  reports      Report[]
+  replyingToID String?
+  replyingTo   Post?    @relation("replyingTo", fields: [replyingToID], references: [CUID])
+  postReplies  Post[]   @relation("replyingTo")
+}
+
+model Report {
+  CUID           String   @id @default(cuid())
+  userID         String
+  user           User     @relation("reportee", fields: [userID], references: [CUID])
+  reason         String
+  content        String
+  time           DateTime @default(now())
+  resolved       Boolean  @default(false)
+  action         String?
+  reportedUserID String?
+  reportedUser   User?    @relation("reported", fields: [reportedUserID], references: [CUID])
+  reportedPostID String?
+  reportedPost   Post?    @relation(fields: [reportedPostID], references: [CUID])
+}
