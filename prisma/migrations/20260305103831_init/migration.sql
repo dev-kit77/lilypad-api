@@ -31,9 +31,8 @@ CREATE TABLE "Post" (
     "CUID" TEXT NOT NULL,
     "userID" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "area" TEXT NOT NULL,
-    "county" TEXT NOT NULL,
-    "postcode" TEXT NOT NULL,
+    "lat" DECIMAL(65,30) NOT NULL,
+    "long" DECIMAL(65,30) NOT NULL,
     "time" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "replyingToID" TEXT,
 
@@ -72,9 +71,6 @@ CREATE UNIQUE INDEX "UserProfile_userID_key" ON "UserProfile"("userID");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserSettings_userID_key" ON "UserSettings"("userID");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Post_userID_key" ON "Post"("userID");
 
 -- AddForeignKey
 ALTER TABLE "UserProfile" ADD CONSTRAINT "UserProfile_userID_fkey" FOREIGN KEY ("userID") REFERENCES "User"("CUID") ON DELETE RESTRICT ON UPDATE CASCADE;

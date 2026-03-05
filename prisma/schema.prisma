@@ -13,6 +13,7 @@ datasource db {
   provider = "postgresql"
 }
 
+///User Model. Stores core userdata.
 model User {
   CUID        String        @id @default(cuid())
   email       String        @unique
@@ -26,6 +27,7 @@ model User {
   userReports Report[]      @relation("reported")
 }
 
+///User profile model. Stores user vanity data
 model UserProfile {
   userID String @unique
   user   User   @relation(fields: [userID], references: [CUID])
@@ -34,6 +36,7 @@ model UserProfile {
   status String
 }
 
+///User settings model. Stores user settings
 model UserSettings {
   userID    String  @unique
   user      User    @relation(fields: [userID], references: [CUID])
@@ -43,14 +46,14 @@ model UserSettings {
   anon      Boolean @default(false)
 }
 
+///Post model. Stores post data.
 model Post {
   CUID         String   @id @default(cuid())
-  userID       String   @unique
+  userID       String
   user         User     @relation(fields: [userID], references: [CUID])
   content      String
-  area         String
-  county       String
-  postcode     String
+  lat          Decimal
+  long         Decimal
   time         DateTime @default(now())
   reports      Report[]
   replyingToID String?
@@ -58,6 +61,7 @@ model Post {
   postReplies  Post[]   @relation("replyingTo")
 }
 
+///Report model. Stores report data.
 model Report {
   CUID           String   @id @default(cuid())
   userID         String
