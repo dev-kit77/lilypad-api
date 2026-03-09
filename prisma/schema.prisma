@@ -15,7 +15,7 @@ model User {
   email       String        @unique
   ///User associated username
   username    String        @unique
-  ///User password Hash. should be protected
+  ///User password bcrypt hash should be protected
   hash        String        @unique
   ///Array of user posts objects
   posts       Post[]
@@ -71,10 +71,10 @@ model Post {
   user         User     @relation(fields: [userID], references: [CUID])
   ///Post textual content
   content      String
-  ///Post area latitude
-  lat          Decimal
-  ///Post area longitude
-  long         Decimal
+  ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
+  locationID   String
+  ///Location object associated with this post
+  location     Location @relation(fields: [locationID], references: [CUID])
   ///Post creation time
   time         DateTime @default(now())
   ///Time of last action
@@ -89,6 +89,28 @@ model Post {
   postReplies  Post[]   @relation("replyingTo")
   ///Reports associated with this Post
   reports      Report[]
+}
+
+///Model for location tree storage
+model Location {
+  ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
+  CUID      String     @id @default(cuid()) 
+  ///Latitude of the location
+  lat       Float
+  ///Longitude of the location
+  long      Float
+  ///Parent location ID of this location
+  ParentID  String?    
+  ///Parent location of this location
+  Parent    Location?  @relation("parent", fields: [ParentID], references: [CUID])
+  ///Distance to parent object
+  distance  Float?
+  ///Radius covered by the location in the tree
+  radius    Float?
+  ///List of posts associated with this location
+  posts     Post[]
+  ///List of child locations associated with this location
+  locations Location[] @relation("parent")
 }
 
 ///Report model. Stores report data.
