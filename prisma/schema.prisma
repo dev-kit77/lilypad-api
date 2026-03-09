@@ -19,6 +19,8 @@ model User {
   hash        String        @unique
   ///Array of user posts objects
   posts       Post[]
+  ///Array of posts a user has upvoted
+  upvotes     Post[]        @relation("upvotes")
   ///Profile data object to store public display data
   profile     UserProfile?
   ///Settings data object to store private user settings
@@ -75,14 +77,18 @@ model Post {
   long         Decimal
   ///Post creation time
   time         DateTime @default(now())
-  ///Reports associated with this Post
-  reports      Report[]
+  ///Time of last action
+  updated      DateTime @default(now())
+  ///Array of users who have upvoted this post
+  upvotes      User[]   @relation("upvotes")
   ///Post ID of the Post this Post is replying to
   replyingToID String?
   ///Post object that this Post is replying to
   replyingTo   Post?    @relation("replyingTo", fields: [replyingToID], references: [CUID])
   ///Array of replies to this post
   postReplies  Post[]   @relation("replyingTo")
+  ///Reports associated with this Post
+  reports      Report[]
 }
 
 ///Report model. Stores report data.
