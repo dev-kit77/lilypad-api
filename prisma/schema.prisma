@@ -15,8 +15,6 @@ model User {
   email       String        @unique
   ///User associated username
   username    String        @unique
-  ///User current authentication token
-  token       String        @unique
   ///User password Hash. should be protected
   hash        String        @unique
   ///Array of user posts objects
