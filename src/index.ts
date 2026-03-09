@@ -3,10 +3,11 @@ import { authController } from './controllers/auth.controller';
 import { contentController } from './controllers/content.controller';
 import { specialController } from './controllers/special.controller';
 import { userController } from './controllers/user.controller';
+import swagger from '@elysiajs/swagger';
 
 
 const PORT = process.env.PORT || 3000;
-export const app = new Elysia();
+export const app = new Elysia().use(swagger());
 
 app
   .group('/api', (app: Elysia) =>
