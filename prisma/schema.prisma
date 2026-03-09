@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -15,64 +9,108 @@ datasource db {
 
 ///User Model. Stores core userdata.
 model User {
+  ///User ID Stored as a CUID (Collision Resistant Universally Unique Identifier)
   CUID        String        @id @default(cuid())
+  ///User email address
   email       String        @unique
+  ///User associated username
   username    String        @unique
+  ///User current authentication token
   token       String        @unique
+  ///User password Hash. should be protected
   hash        String        @unique
+  ///Array of user posts objects
   posts       Post[]
+  ///Profile data object to store public display data
   profile     UserProfile?
+  ///Settings data object to store private user settings
   settings    UserSettings?
+  ///Array of report objects made against other users
   reports     Report[]      @relation("reportee")
+  ///Array of report ojects made against the User
   userReports Report[]      @relation("reported")
 }
 
 ///User profile model. Stores user vanity data
 model UserProfile {
+  ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID String @unique
+  ///User object associated with this profile
   user   User   @relation(fields: [userID], references: [CUID])
+  ///Users display Name
   name   String
+  ///User profile biography
   bio    String
+  ///User current status
   status String
 }
 
 ///User settings model. Stores user settings
 model UserSettings {
-  userID    String  @unique
-  user      User    @relation(fields: [userID], references: [CUID])
-  active    Int     @default(0)
-  privilege Boolean @default(false)
-  dark      Boolean @default(false)
-  anon      Boolean @default(false)
+  ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
+  userID    String   @unique
+  ///User object associated with these settings
+  user      User     @relation(fields: [userID], references: [CUID])
+  ///Access flag for setting the date from which the user is allowed access for implementing ban times
+  access    DateTime @default(now())
+  ///Privilege flag for staff/admin access
+  privilege Boolean  @default(false)
+  ///Dark flag for dark mode preference
+  dark      Boolean  @default(false)
+  ///Anonymous flag for anonymous user accounts
+  anon      Boolean  @default(false)
 }
 
 ///Post model. Stores post data.
 model Post {
+  ///Post ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   CUID         String   @id @default(cuid())
+  ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID       String
+  ///User object associated with this post
   user         User     @relation(fields: [userID], references: [CUID])
+  ///Post textual content
   content      String
+  ///Post area latitude
   lat          Decimal
+  ///Post area longitude
   long         Decimal
+  ///Post creation time
   time         DateTime @default(now())
+  ///Reports associated with this Post
   reports      Report[]
+  ///Post ID of the Post this Post is replying to
   replyingToID String?
+  ///Post object that this Post is replying to
   replyingTo   Post?    @relation("replyingTo", fields: [replyingToID], references: [CUID])
+  ///Array of replies to this post
   postReplies  Post[]   @relation("replyingTo")
 }
 
 ///Report model. Stores report data.
 model Report {
+  ///Report ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   CUID           String   @id @default(cuid())
+  ///User ID of the reporting user stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID         String
+  ///User object associated with the reporting user
   user           User     @relation("reportee", fields: [userID], references: [CUID])
+  ///Reason given for the report
   reason         String
+  ///content of the Report
   content        String
+  ///Report creation time
   time           DateTime @default(now())
+  ///Report resolution flag
   resolved       Boolean  @default(false)
+  ///Description of the action taken based on the Report
   action         String?
+  ///User ID of the reported user stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedUserID String?
+  ///User object associated with the reported user
   reportedUser   User?    @relation("reported", fields: [reportedUserID], references: [CUID])
+  ///Post ID of the reported post stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedPostID String?
+  ///Post object associated with the reported post
   reportedPost   Post?    @relation(fields: [reportedPostID], references: [CUID])
 }
