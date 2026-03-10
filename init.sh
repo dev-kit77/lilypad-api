@@ -80,17 +80,30 @@ pg_isready -d ${DATABASE_URL%?schema=public}
 if [ $? != 0 ]; then
     echo "Database connection Error. Please check your PostgreSQL Database & credentials in .env."
 else
+    echo -e "Connected to database: ${DATABASE_URL%?schema=public}!\n"
+
     #add default connection info query
     queries="\conninfo"
 
-    #database reset sql commands
+    #check for reset environment
     if [ $ENVIROMENT == "RESET" ]; then
-        queries+="\\\ DROP SCHEMA public CASCADE;
-        CREATE SCHEMA public;
-        GRANT ALL ON SCHEMA public TO pg_database_owner, public;
-        COMMENT ON SCHEMA public IS 'standard public schema';"
+        #Confirm with user
+        read -p "Are you sure you want to reset database schema? ALL DATA WILL BE LOST! (y/n):" -n 1 -r
+
+        #read reply
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            #reset schema SQL Queries
+            queries+="\\\ DROP SCHEMA public CASCADE;
+            CREATE SCHEMA public;
+            GRANT ALL ON SCHEMA public TO pg_database_owner, public;
+            COMMENT ON SCHEMA public IS 'standard public schema';"
+        else
+            echo -e "\nReset cancelled. No data has been modified."
+            exit 1
+        fi
     fi
 
-    #display connection info
+    echo -e "\nExecuting queries..."
+
+    #Execute queries
     echo $queries | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
-fi
