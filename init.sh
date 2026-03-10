@@ -107,3 +107,4 @@ else
 
     #Execute queries
     echo $queries | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
+fi
