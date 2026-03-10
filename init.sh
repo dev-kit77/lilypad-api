@@ -108,3 +108,29 @@ else
     #Execute queries
     echo $queries | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
 fi
+
+#remove any previous migrations
+echo -e "\nCleaning any previous migrations..."
+rm -rf ./prisma/migrations/*/
+echo -e "Migrations removed!"
+
+#generate migrations
+echo -e "\nGenerating prisma migrations..."
+bunx --bun prisma migrate dev --name init --create-only
+echo -e "Migrations generated!"
+
+#needed SQL modifications go here after this statement
+echo -e "\nModifying migrations..."
+
+#execute migrations on database
+echo -e "\nExecuting Prisma migrations on Database..."
+bunx --bun prisma migrate dev
+
+#remove any previous prisma client
+echo -e "Cleaning any previous prisma client..."
+rm -rf ./generated/prisma
+echo -e "Client removed!"
+
+#generate prisma client
+echo -e "\nGenerating prisma client..."
+bunx --bun prisma generate
