@@ -3,6 +3,20 @@
 # V1.00
 # Kit Cochrane
 
+#print script info
+echo "
+Lilypad API Initialisation script.
+Kit Cochrane
+
+This script:
+- Checks for a bun install and installs dependencies
+- Checks for required .env file & variables
+- Resets the current database
+- Generates the Prisma migrations
+- Updates any SQL if needed
+- Generates the prisma client files
+"
+
 echo "Checking for bun install..."
 
 #run bun version command and check for output
@@ -66,6 +80,17 @@ pg_isready -d ${DATABASE_URL%?schema=public}
 if [ $? != 0 ]; then
     echo "Database connection Error. Please check your PostgreSQL Database & credentials in .env."
 else
+    #add default connection info query
+    queries="\conninfo"
+
+    #database reset sql commands
+    if [ $ENVIROMENT == "RESET" ]; then
+        queries+="\\\ DROP SCHEMA public CASCADE;
+        CREATE SCHEMA public;
+        GRANT ALL ON SCHEMA public TO pg_database_owner, public;
+        COMMENT ON SCHEMA public IS 'standard public schema';"
+    fi
+
     #display connection info
-    echo "\conninfo" | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
+    echo $queries | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
 fi
