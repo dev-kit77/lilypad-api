@@ -6,6 +6,9 @@
 #import basic functions lib
 source ./lib/basics.sh
 
+#init skip counter
+SKIP=0
+
 #print script info
 cat ./init.md
 
@@ -29,12 +32,12 @@ exit_check "Failed to load environment variables from .env file." "Values extrac
 #no var set
 if [ -z $ENVIROMENT ]; then
     throw 4 "Environment variable ENVIROMENT is not set. Please see .env Environment Variables and .env-example schema."
-elif [ $ENVIROMENT == "PROD" ]; then
+elif [ "$ENVIROMENT" = "PROD" ]; then
     message "Environment is set to Production."
-elif [ $ENVIROMENT == "DEV" ]; then
+elif [ "$ENVIROMENT" = "DEV" ]; then
     message "Environment is set to Development."
     warn "This environment is intended for development. This can result in unsafe data handling from exposed data and increased startup times!"
-elif [ $ENVIROMENT == "INIT" ]; then
+elif [ "$ENVIROMENT" = "INIT" ]; then
     message "Environment is set to Initialization."
     warn "This enviroment does not follow data preservation principles. Any data not backed up WILL BE LOST!"
 #unknown value
@@ -53,92 +56,133 @@ fi
 message "Database URL is set to $DATABASE_URL"
 
 #check for pg_isready and psql commands
-check_install pg_isready
-check_install psql
-
-#check database connection
-message "Checking database connection at ${DATABASE_URL%?schema=public}..."
-echo -en "\033[0mDATABASE: "
-pg_isready -d ${DATABASE_URL%?schema=public}
-
-#verify
-exit_check "Database connection Error. Please check your PostgreSQL connection string & credentials in .env." "Connected to database: ${DATABASE_URL%?schema=public}!"
-
-#add default connection info query
-queries="\conninfo"
-
-#check for INIT environment
-if [ $ENVIROMENT == "INIT" ]; then
-    #Confirm with user
-    warn_prompt "Are you sure you want to reset database schema? ALL DATA WILL BE LOST! (y/n): "
-    read -n 1
-    newl
-
-    #read reply
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        #reset schema SQL Queries
-        queries+="\\\ DROP SCHEMA public CASCADE;
-        CREATE SCHEMA public;
-        GRANT ALL ON SCHEMA public TO pg_database_owner, public;
-        COMMENT ON SCHEMA public IS 'standard public schema';"
-    else
-        throw 8 "Reset cancelled. No data has been modified."
+if [ "$ENVIROMENT" = "INIT" ] || [ "$ENVIROMENT" = "PROD" ]; then
+    check_install pg_isready
+    check_install psql
+else
+    if ! check_install pg_isready -w; then
+        SKIP=$(($SKIP + 1))
+    fi
+    if ! check_install psql -w; then
+        SKIP=$(($SKIP + 1))
     fi
 fi
 
-#Execute queries
-message "Executing queries..."
-echo $queries | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
+if [ $SKIP -gt 1 ]; then
+    SKIP=$(($SKIP - 1))
+elif [ $SKIP -eq 1 ]; then
+    SKIP=$(($SKIP - 1))
+    warn "Attempting unverified connection to database connection at ${DATABASE_URL%?schema=public}..."
+else
+    #check database connection
+    message "Checking database connection at ${DATABASE_URL%?schema=public}..."
+    echo -en "\033[0mDATABASE: "
+    pg_isready -d ${DATABASE_URL%?schema=public}
+
+    #verify
+    exit_check "Database connection Error. Please check your PostgreSQL connection string & credentials in .env." "Connected to database: ${DATABASE_URL%?schema=public}!"
+fi
+
+if [ $SKIP -gt 0 ]; then
+    SKIP=$(($SKIP - 1))
+else
+    #add default connection info query
+    queries="\conninfo"
+
+    #check for INIT environment
+    if [ "$ENVIROMENT" = "INIT" ]; then
+        #Confirm with user
+        warn_prompt "Are you sure you want to reset database schema? ALL DATA WILL BE LOST! (y/n): "
+        read -n 1
+        newl
+
+        #read reply
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            #reset schema SQL Queries
+            queries+="\\\ DROP SCHEMA public CASCADE;
+            CREATE SCHEMA public;
+            GRANT ALL ON SCHEMA public TO pg_database_owner, public;
+            COMMENT ON SCHEMA public IS 'standard public schema';"
+        else
+            throw 8 "Reset cancelled. No data has been modified."
+        fi
+    fi
+
+    #Execute queries
+    message "Executing queries..."
+    echo $queries | psql -X -d ${DATABASE_URL%?schema=public} -P pager=off
+
+    #verify
+    exit_check "Database connection Error. Please check your PostgreSQL connection string & credentials in .env." "Queries on database executed successfully"
+fi
 
 #check for bun installation
 check_install bun
 
 #install dependencies
 message "Proceeding with dependencies installation..."
-bun install
+if [ "$ENVIROMENT" = "INIT" ]; then
+    bun install --force --verbose
+elif [ "$ENVIROMENT" = "DEV" ]; then
+    bun install --verbose
+else
+    bun install --production
+fi
 
 #verify
 exit_check "Dependencies installation failed" "Dependencies installed!"
 
-#remove any previous migrations
-message "Removing any previous migrations..."
-remove "./prisma/migrations/*/"
+if [ "$ENVIROMENT" != "PROD" ]; then
+    if [ "$ENVIROMENT" = "INIT" ]; then
+        #remove any previous migrations
+        message "Removing any previous migrations..."
+        remove "./prisma/migrations/*/"
 
-#verify
-exit_check "Unable to delete migrations" "Migrations removed!"
+        #verify
+        exit_check "Unable to delete migrations" "Migrations removed!"
 
-#generate migrations
-message "Generating prisma migrations..."
-bunx --bun prisma migrate dev --name init --create-only
+        #remove any previous prisma client
+        message "Removing any previous prisma client..."
+        remove ./generated/prisma
 
-#verify
-exit_check "Encountered error generating prisma migrations." "Migrations generated!"
+        #verify
+        exit_check "Unable to delete prisma client" "Prisma client removed!"
+    fi
 
-#modify prisma migrations
-message "Modifying migrations..."
-#needed SQL modification operations (e.g. adding Postgres plugins) go here after this statement
-success "Migrations Updated"
+    #generate migrations
+    message "Generating prisma migrations..."
+    bunx --bun prisma migrate dev --name init --create-only
 
-#execute migrations on database
-message "Executing Prisma migrations on Database..."
-bunx --bun prisma migrate dev
+    #verify
+    exit_check "Encountered error generating prisma migrations." "Migrations generated!"
 
-#verify
-exit_check "Encountered error applying migrations. Please check database integrity." "Migrations applied to database!"
+    #modify prisma migrations
+    message "Modifying migrations..."
+    #needed SQL modification operations (e.g. adding Postgres plugins) go here after this statement
+    success "Migrations Updated"
 
-#remove any previous prisma client
-message "Cleaning any previous prisma client..."
-remove ./generated/prisma
+    #execute migrations on database
+    message "Executing Prisma migrations on Database..."
+    bunx --bun prisma migrate dev
 
-#generate prisma client
-message "Generating prisma client..."
-bunx --bun prisma generate
+    #verify
+    exit_check "Encountered error applying migrations. Please check database integrity." "Migrations applied to database!"
 
-#verify
-exit_check "Encountered error generating prisma client." "Client successfully generated!"
+    #generate prisma client
+    message "Generating prisma client..."
+    bunx --bun prisma generate
 
-#build api
-message "Building Lilypad-API..."
+    #verify
+    exit_check "Encountered error generating prisma client." "Client successfully generated!"
+
+    #build api
+    message "Building Lilypad-API..."
+    #any build commands go here
+fi
+
+#start api
+message "Starting Lilypad-API..."
+bun run ./src/index.ts #this bun command will need updated later on to a proper script in package.json
 
 #end script
 clean_exit 0

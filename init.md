@@ -12,10 +12,11 @@
 | Script Operations:                                                           |
 | + Checks for required .env file & variables (PROD)                           |
 | + Checks for a bun install (PROD)                                            |
-| + Installs Bun dependencies and modules (DEV)                                |
+| + Checks Bun dependencies and modules and installs missing (PROD)            |
 | + Resets the current database (INIT)                                         |
-| + Generates the Prisma migrations (DEV)                                      |
+| + Generates the current Prisma migrations (DEV)                              |
 | + Updates any SQL (DEV)                                                      |
 | + Generates the prisma client files (DEV)                                    |
+| + Compiles any needed files (DEV)                                            |
 | + Starts the API Server (PROD)                                               |
 +------------------------------------------------------------------------------+
