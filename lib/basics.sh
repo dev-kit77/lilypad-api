@@ -39,8 +39,13 @@ check_install() {
     #run command and check for path
     message "Checking for $1..."
     if ! command -v $1>>/dev/null; then
-        throw 3 "$1 could not be located and is required. Please verify $1 install before running this script."
-        return 1
+        if [ $4 -eq '-w']; then
+            warn "$1 could not be located and is required. Please verify $1 install. Skipping..."
+            return 1
+        else
+            throw $2 "$1 could not be located and is required. Please verify $1 install before running this script."
+            return 1
+        fi
     else
         success "$1 found at $(command -v $1)!"
         return 0
@@ -51,10 +56,15 @@ check_install() {
 exit_check() {
     #check last exit status
     if [ $? != 0 ]; then
-        throw 2 $1 " Operation returned $?."
-        return 1
+        if [ $4 -eq '-w']; then
+            warn $1 " Operation returned $?."
+            return 2
+        else
+            throw $2 $1 " Operation returned $?."
+            return 1
+        fi
     else
-        success $2
+        success $3
         return 0
     fi
 }
