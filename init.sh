@@ -187,11 +187,17 @@ if [ "$ENVIROMENT" != "PROD" ]; then
     #build api
     message "Building Lilypad-API..."
     #any build commands go here
+
+    #verify
+    #exit_check "Encountered error building API." "API built!"
 fi
 
 #start api
 message "Starting Lilypad-API..."
 bun run ./src/index.ts #this bun command will need updated later on to a proper script in package.json
+
+#verify
+exit_check "Encountered error starting API." "API running!"
 
 #end script
 clean_exit 0
