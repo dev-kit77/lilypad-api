@@ -56,24 +56,33 @@ fi
 message "Database URL is set to $DATABASE_URL"
 
 #check for pg_isready and psql commands
-if [ "$ENVIROMENT" = "INIT" ] || [ "$ENVIROMENT" = "PROD" ]; then
+if [ "$ENVIROMENT" != "DEV" ]; then
     check_install pg_isready
     check_install psql
+
+    #mark as okay
+    CONNECTION="OK"
+    CLIENT="OK"
 else
+    #determine status
     if ! check_install pg_isready -w; then
-        SKIP=$(($SKIP + 1))
+        CONNECTION="UNKNOWN"
+    else
+        CONNECTION="OK"
     fi
+
+    #determine client status
     if ! check_install psql -w; then
-        SKIP=$(($SKIP + 1))
+        CLIENT="UNKNOWN"
+    else
+        CLIENT="OK"
     fi
 fi
 
-if [ $SKIP -gt 1 ]; then
-    SKIP=$(($SKIP - 1))
-elif [ $SKIP -eq 1 ]; then
-    SKIP=$(($SKIP - 1))
-    warn "Attempting unverified connection to database connection at ${DATABASE_URL%?schema=public}..."
-else
+#check if only client is available
+if [ "$CONNECTION" = "UNKNOWN" ] && [ "$CLIENT" = "OK" ]; then
+    warn "Unable to verify database connection at ${DATABASE_URL%?schema=public}. Proceeding with unverified connection..."
+elif [ "$CONNECTION" = "OK" ]; then
     #check database connection
     message "Checking database connection at ${DATABASE_URL%?schema=public}..."
     echo -en "\033[0mDATABASE: "
@@ -83,9 +92,8 @@ else
     exit_check "Database connection Error. Please check your PostgreSQL connection string & credentials in .env." "Connected to database: ${DATABASE_URL%?schema=public}!"
 fi
 
-if [ $SKIP -gt 0 ]; then
-    SKIP=$(($SKIP - 1))
-else
+#check if available
+if [ "$CLIENT" = "OK" ]; then
     #add default connection info query
     queries="\conninfo"
 
@@ -121,6 +129,7 @@ check_install bun
 
 #install dependencies
 message "Proceeding with dependencies installation..."
+#check enviroment
 if [ "$ENVIROMENT" = "INIT" ]; then
     bun install --force --verbose
 elif [ "$ENVIROMENT" = "DEV" ]; then
