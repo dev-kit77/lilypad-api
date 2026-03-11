@@ -7,7 +7,7 @@
 source ./lib/basics.sh
 
 #print script info
-echo ./init.md
+cat ./init.md
 
 #check for .env file
 message "Checking for Environment file..."
@@ -72,7 +72,7 @@ if [ $ENVIROMENT == "INIT" ]; then
     #Confirm with user
     warn_prompt "Are you sure you want to reset database schema? ALL DATA WILL BE LOST! (y/n): "
     read -n 1
-    nl
+    newl
 
     #read reply
     if [[ $REPLY =~ ^[Yy]$ ]]; then
