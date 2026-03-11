@@ -41,6 +41,13 @@ throw() {
     clean_exit $1
 }
 
+yn_prompt() {
+    #Confirm with user
+    warn_prompt "$1" " (y/n): "
+    read -n 1
+    newl
+}
+
 #function to check if a command is installed
 check_install() {
     #run command and check for path
