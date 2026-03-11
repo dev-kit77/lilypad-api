@@ -12,7 +12,7 @@ cat ./init.md
 #check for .env file
 message "Checking for Environment file..."
 if [ ! -f .env ]; then
-    throw 1 ".env file not found! Please create a .env file following .env-example schem."
+    throw 3 ".env file not found! Please create a .env file following .env-example schem."
 else
     success ".env file found!"
     message "Proceeding with environment checks..."
@@ -28,7 +28,7 @@ exit_check "Failed to load environment variables from .env file." "Values extrac
 #check environment type
 #no var set
 if [ -z $ENVIROMENT ]; then
-    throw 3 "Environment variable ENVIROMENT is not set. Please see .env Environment Variables and .env-example schema."
+    throw 4 "Environment variable ENVIROMENT is not set. Please see .env Environment Variables and .env-example schema."
 elif [ $ENVIROMENT == "PROD" ]; then
     message "Environment is set to Production."
 elif [ $ENVIROMENT == "DEV" ]; then
@@ -39,7 +39,7 @@ elif [ $ENVIROMENT == "INIT" ]; then
     warn "This enviroment does not follow data preservation principles. Any data not backed up WILL BE LOST!"
 #unknown value
 else
-    throw 4 "Environment variable ENVIROMENT is set to an unknown value: $ENVIROMENT. Please see .env Environment Variables and .env-example."
+    throw 5 "Environment variable ENVIROMENT is set to an unknown value: $ENVIROMENT. Please see .env Environment Variables and .env-example."
 fi
 
 #check for database url

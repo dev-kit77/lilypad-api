@@ -21,11 +21,6 @@ warn_prompt() {
     echo -en "\033[36;1mWARNING\033[22m: $*"
 }
 
-throw() {
-    echo -e "\033[31;1mERROR $1\033[22m: $2"
-    clean_exit $1
-}
-
 newl() {
     echo -e "\n"
 }
@@ -34,16 +29,28 @@ clear_format() {
     echo -en "\033[0m"
 }
 
+#function to clear formatting and exit with message
+clean_exit() {
+    message "Exiting with code $1"
+    clear_format
+    exit $1
+}
+
+throw() {
+    echo -e "\033[31;1mERROR $1\033[22m: $2"
+    clean_exit $1
+}
+
 #function to check if a command is installed
 check_install() {
     #run command and check for path
     message "Checking for $1..."
     if ! command -v $1>>/dev/null; then
-        if [ $4 -eq '-w']; then
+        if [ $2 -eq '-w']; then
             warn "$1 could not be located and is required. Please verify $1 install. Skipping..."
             return 1
         else
-            throw $2 "$1 could not be located and is required. Please verify $1 install before running this script."
+            throw 2 "$1 could not be located and is required. Please verify $1 install before running this script."
             return 1
         fi
     else
@@ -56,15 +63,15 @@ check_install() {
 exit_check() {
     #check last exit status
     if [ $? != 0 ]; then
-        if [ $4 -eq '-w']; then
+        if [ $3 -eq '-w']; then
             warn $1 " Operation returned $?."
             return 2
         else
-            throw $2 $1 " Operation returned $?."
+            throw 1 $1 " Operation returned $?."
             return 1
         fi
     else
-        success $3
+        success $2
         return 0
     fi
 }
@@ -75,12 +82,5 @@ remove() {
     rm -rfv $1
 
     #validate
-    return $(exit_check "Unable to delete $1" "$1 removed!")
-}
-
-#function to clear formatting and exit with message
-clean_exit() {
-    message "Exiting with code $1"
-    clear_format
-    exit $1
+    return (exit_check "Unable to delete $1" 1 "$1 removed!")
 }
