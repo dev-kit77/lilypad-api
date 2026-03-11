@@ -46,8 +46,8 @@ check_install() {
     #run command and check for path
     message "Checking for $1..."
     if ! command -v $1>>/dev/null; then
-        if [ $2 -eq '-w']; then
-            warn "$1 could not be located and is required. Please verify $1 install. Skipping..."
+        if [ "$2" == "-w" ]; then
+            warn "$1 could not be located. Please verify $1 install. Skipping..."
             return 1
         else
             throw 2 "$1 could not be located and is required. Please verify $1 install before running this script."
@@ -62,16 +62,16 @@ check_install() {
 #function to check exit status of last command and throw error if failed
 exit_check() {
     #check last exit status
-    if [ $? != 0 ]; then
-        if [ $3 -eq '-w']; then
-            warn $1 " Operation returned $?."
+    if [ $? -ne 0 ]; then
+        if [ "$3" == "-w" ]; then
+            warn "$1" " Operation returned $?."
             return 2
         else
-            throw 1 $1 " Operation returned $?."
+            throw 1 "$1" " Operation returned $?."
             return 1
         fi
     else
-        success $2
+        success "$2"
         return 0
     fi
 }
@@ -80,7 +80,4 @@ exit_check() {
 remove() {
     warn "Removing $1..."
     rm -rfv $1
-
-    #validate
-    return (exit_check "Unable to delete $1" 1 "$1 removed!")
 }

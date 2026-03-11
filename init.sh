@@ -102,7 +102,10 @@ exit_check "Dependencies installation failed" "Dependencies installed!"
 
 #remove any previous migrations
 message "Removing any previous migrations..."
-remove ./prisma/migrations/*/
+remove "./prisma/migrations/*/"
+
+#verify
+exit_check "Unable to delete migrations" "Migrations removed!"
 
 #generate migrations
 message "Generating prisma migrations..."
