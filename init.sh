@@ -45,6 +45,14 @@ else
     throw 5 "Environment variable ENVIROMENT is set to an unknown value: $ENVIROMENT. Please see .env Environment Variables and .env-example."
 fi
 
+yn_prompt "Is this the correct mode? (If this is your first time running this script you should be in Initialization!)"
+
+#read reply
+if [[ $REPLY =~ ^[Nn]$ ]]; then
+    message "Please run this script again after setting correct mode in .env."
+    clean_exit 0
+fi
+
 #check for database url
 if [ -z $DATABASE_URL ]; then
     throw 6 "Database URL is not set. Please see .env Environment Variables and .env-example."
@@ -99,10 +107,7 @@ if [ "$CLIENT" = "OK" ]; then
 
     #check for INIT environment
     if [ "$ENVIROMENT" = "INIT" ]; then
-        #Confirm with user
-        warn_prompt "Are you sure you want to reset database schema? ALL DATA WILL BE LOST! (y/n): "
-        read -n 1
-        newl
+        yn_prompt "Are you sure you want to reset database schema? ALL DATA WILL BE LOST!"
 
         #read reply
         if [[ $REPLY =~ ^[Yy]$ ]]; then
