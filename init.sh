@@ -231,12 +231,21 @@ if [ "$ENVIROMENT" != "PROD" ]; then
     #exit_check "Encountered error building API." "API built!"
 fi
 
+#prompt to start the API
+yn_prompt "Would you like to start the API now?"
+
+#read reply
+if [[ $REPLY =~ ^[Nn]$ ]]; then
+    success "API prepared. To start use bun run (dev|prod)!"
+    clean_exit 0
+fi
+
 #start api
 message "Starting Lilypad-API..."
 bun run ./src/index.ts #this bun command will need updated later on to a proper script in package.json
 
 #verify
-exit_check "Encountered error starting API." "API running!"
+exit_check "Encountered error starting API." "API finished running!"
 
 #end script
 clean_exit 0
