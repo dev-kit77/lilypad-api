@@ -6,6 +6,22 @@
 #import basic functions lib
 source ./lib/basics.sh
 
+update_env() {
+    #rename old.env file
+    mv ./.env ./.env-tmp
+
+    #replace .env value with new value and store
+    sed -e "s/$1=.*/$1=${!1//\//\/}/" ./.env-tmp > ./.env
+    if [ $? -ne 0 ]; then cp ./.env-tmp ./.env; return $?; fi
+
+    #remove temp file
+    rm -f ./.env-tmp
+    if [ $? -ne 0 ]; then cp ./.env-tmp ./.env; return $?; fi
+
+    #return success
+    return 0
+}
+
 #print script info
 cat ./init.md
 
@@ -71,8 +87,15 @@ fi
 message "Database URL is set to $DATABASE_URL"
 
 #update enviroment variables in file
-sed -e "s/ENVIROMENT=.*/ENVIROMENT=$ENVIROMENT/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
-sed -e "s/DATABASE_URL=.*/DATABASE_URL=${DATABASE_URL//\//\\/}/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
+message "Updating .env enviroment file"
+
+#update ENVIROMENT
+update_env "ENVIROMENT"
+exit_check "Failed to update ENVIROMENT attribute in .env. Original file has been restored. Current value will be used for this session." "ENVIROMENT updated successfully" -w
+
+#update DATABASE_URL
+update_env "DATABASE_URL"
+exit_check "Failed to update DATABASE_URL attribute in .env. Original file has been restored. Current value will be used for this session." "DATABASE_URL updated successfully" -w
 
 #check for pg_isready and psql commands
 if [ "$ENVIROMENT" != "DEV" ]; then
