@@ -35,10 +35,6 @@ do
     esac
 done
 
-#update enviroment variables in file
-sed -e "s/ENVIROMENT=.*/ENVIROMENT=$ENVIROMENT/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
-sed -e "s/DATABASE_URL=.*/DATABASE_URL=${DATABASE_URL//\//\\/}/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
-
 #check environment type
 #no var set
 if [ -z $ENVIROMENT ]; then
@@ -73,6 +69,10 @@ fi
 
 #notify user
 message "Database URL is set to $DATABASE_URL"
+
+#update enviroment variables in file
+sed -e "s/ENVIROMENT=.*/ENVIROMENT=$ENVIROMENT/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
+sed -e "s/DATABASE_URL=.*/DATABASE_URL=${DATABASE_URL//\//\\/}/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
 
 #check for pg_isready and psql commands
 if [ "$ENVIROMENT" != "DEV" ]; then
