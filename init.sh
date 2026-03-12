@@ -6,15 +6,12 @@
 #import basic functions lib
 source ./lib/basics.sh
 
-#init skip counter
-SKIP=0
-
 #print script info
 cat ./init.md
 
 #check for .env file
 message "Checking for Environment file..."
-if [ ! -f .env ]; then
+if [ ! -f ./.env ]; then
     throw 3 ".env file not found! Please create a .env file following .env-example schem."
 else
     success ".env file found!"
@@ -23,10 +20,24 @@ fi
 
 #load variables from file
 message "Extracting environment variables from .env..."
-export $(grep -v '^#' .env | xargs)
+export $(grep -v '^#' ./.env | xargs)
 
 #verify environment variables loaded successfully
 exit_check "Failed to load environment variables from .env file." "Values extracted from .env!"
+
+#overwrite .env with optional args
+while getopts e:d: option
+do
+    case "${option}"
+        in
+        e)ENVIROMENT=${OPTARG};;
+        d)DATABASE_URL=${OPTARG};;
+    esac
+done
+
+#update enviroment variables in file
+sed -e "s/ENVIROMENT=.*/ENVIROMENT=$ENVIROMENT/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
+sed -e "s/DATABASE_URL=.*/DATABASE_URL=${DATABASE_URL//\//\\/}/" ./.env | cat > ./.env-tmp; mv ./.env-tmp ./.env
 
 #check environment type
 #no var set
