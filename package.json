@@ -18,5 +18,11 @@
     "elysia": "^1.4.27",
     "pg": "^8.19.0",
     "@elysiajs/swagger": "^1.3.1"
+  },
+  "scripts": {
+    "dev": "./lilypad.sh -e DEV",
+    "prod": "./lilypad.sh -e PROD",
+    "init": "./lilypad.sh -e INIT",
+    "reset": "./lilypad.sh -e INIT"
   }
 }
