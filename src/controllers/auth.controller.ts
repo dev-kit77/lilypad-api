@@ -1,51 +1,14 @@
-import { Elysia, t } from 'elysia'
-import { REGISTRATION_FAILED_MESSAGE, TOKEN_GENERATION_FAILED } from '../models/error.responses'
-import { getToken } from '../service/auth.service'
+import { Elysia, type Context } from 'elysia'
+import { auth } from '../../lib/auth'
 
-const authRegisterBody = t.Object({
-    username: t.String(),
-    email: t.String({ format: 'email' }),
-    hash: t.String(),
-    userData: t.Object({}, { additionalProperties: true })
-})
+const betterAuthView = (context: Context) => {
+  const BETTER_AUTH_ACCEPT_METHODS = ['POST', 'GET']
 
-export const authController = (app: Elysia) =>
-    app
-        // global validation handling
-        .onError(({ code, error, set }) => {
-            if (code === 'VALIDATION') {
-                set.status = 400
-                return {
-                    message: 'Validation failed',
-                    fields: error.all.map(e => ({
-                        field: e.path.replace('/', ''),
-                        message: e.message
-                    }))
-                }
-            }
-        })
-        .get('/auth', ({ set }) => {
-            // change once the logic to generate token
-            // is there
-            const token = getToken()
-            const success = true
+  if (BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
+    return auth.handler(context.request)
+  } else {
+    context.set.status = 405
+  }
+}
 
-            if (!success) {
-                set.status = 403
-                return { error: TOKEN_GENERATION_FAILED }
-            }
-            return { token: token }
-        })
-        .post('/auth', ({ body, set }) => {
-            // whatever we need to do, then
-            const success = true
-
-            if (!success) {
-                set.status = 403
-                return { error: REGISTRATION_FAILED_MESSAGE }
-            }
-
-            return { token: getToken() }
-        }, {
-            body: authRegisterBody
-        })
+export const authController = (app: Elysia) => app.all('/api/auth/*', betterAuthView)

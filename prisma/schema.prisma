@@ -7,8 +7,75 @@ datasource db {
   provider = "postgresql"
 }
 
-///User Model. Stores core userdata.
+// AUTHENTICATION MODELS START
+
 model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// AUTHENTICATION MODELS END
+
+///User Model. Stores core userdata.
+model UserInfo {
   ///User ID Stored as a CUID (Collision Resistant Universally Unique Identifier)
   CUID        String        @id @default(cuid())
   ///User email address
@@ -36,7 +103,7 @@ model UserProfile {
   ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID String @unique
   ///User object associated with this profile
-  user   User   @relation(fields: [userID], references: [CUID])
+  user   UserInfo   @relation(fields: [userID], references: [CUID])
   ///Users display Name
   name   String
   ///User profile biography
@@ -50,7 +117,7 @@ model UserSettings {
   ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID    String   @unique
   ///User object associated with these settings
-  user      User     @relation(fields: [userID], references: [CUID])
+  user      UserInfo     @relation(fields: [userID], references: [CUID])
   ///Access flag for setting the date from which the user is allowed access for implementing ban times
   access    DateTime @default(now())
   ///Privilege flag for staff/admin access
@@ -68,7 +135,7 @@ model Post {
   ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID       String
   ///User object associated with this post
-  user         User     @relation(fields: [userID], references: [CUID])
+  user         UserInfo     @relation(fields: [userID], references: [CUID])
   ///Post textual content
   content      String
   ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
@@ -80,7 +147,7 @@ model Post {
   ///Time of last action
   updated      DateTime @default(now())
   ///Array of users who have upvoted this post
-  upvotes      User[]   @relation("upvotes")
+  upvotes      UserInfo[]   @relation("upvotes")
   ///Post ID of the Post this Post is replying to
   replyingToID String?
   ///Post object that this Post is replying to
@@ -120,7 +187,7 @@ model Report {
   ///User ID of the reporting user stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID         String
   ///User object associated with the reporting user
-  user           User     @relation("reportee", fields: [userID], references: [CUID])
+  user           UserInfo     @relation("reportee", fields: [userID], references: [CUID])
   ///Reason given for the report
   reason         String
   ///content of the Report
@@ -134,7 +201,7 @@ model Report {
   ///User ID of the reported user stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedUserID String?
   ///User object associated with the reported user
-  reportedUser   User?    @relation("reported", fields: [reportedUserID], references: [CUID])
+  reportedUser   UserInfo?    @relation("reported", fields: [reportedUserID], references: [CUID])
   ///Post ID of the reported post stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedPostID String?
   ///Post object associated with the reported post
