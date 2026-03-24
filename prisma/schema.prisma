@@ -11,6 +11,7 @@ datasource db {
 
 model User {
   id                    String         @id
+  ///User associated username, despite being named "name"
   name                  String         @unique
   email                 String
   emailVerified         Boolean        @default(false)
@@ -23,11 +24,16 @@ model User {
   banExpires            DateTime?
   sessions              Session[]
   accounts              Account[]
+  ///Array of posts a user has upvoted
   posts                 Post[]
   upvotes               Post[]         @relation("upvotes")
+  ///Profile data object to store public display data
   profile               UserProfile?
+  ///Settings data object to store private user settings
   settings              UserSettings?
+  ///Array of report objects made against other users
   reports               Report[]       @relation("reportee")
+  ///Array of report ojects made against the User
   userReports           Report[]       @relation("reported")
 
   @@unique([email])
