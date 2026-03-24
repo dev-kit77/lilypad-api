@@ -1,9 +1,9 @@
 import { Elysia, t } from 'elysia'
-import { checkPermission } from '../../../lib/middleware/requirePermission'
+import { checkRole } from '../../../lib/middleware/requireAuth'
 
 export const adminController = (app: Elysia) =>
     app.guard(
-        { beforeHandle: checkPermission('report', ['delete']) },
+        { beforeHandle: checkRole('admin') },
         (app) => app
             .get('/admin', () => {
                 return '<p>Welcome to /admin</p>'

@@ -1,9 +1,9 @@
 import { Elysia } from 'elysia'
-import { checkPermission } from '../../../lib/middleware/requirePermission'
+import { checkAuth } from '../../../lib/middleware/requireAuth'
 
 export const contentController = (app: Elysia) =>
     app.guard(
-        { beforeHandle: checkPermission('content', ['view']) },
+        { beforeHandle: checkAuth() },
         (app) => app
             .get('/content', () => {
                 return '<p>Welcome to /content</p>'
