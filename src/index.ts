@@ -1,5 +1,4 @@
 import { Elysia, type Context } from 'elysia'
-import { sessionMiddleware } from '../lib/middleware/session'
 import { userController } from './controllers/user/user.controller'
 import { contentController } from './controllers/user/content.controller'
 import swagger from '@elysiajs/swagger'
@@ -18,9 +17,9 @@ const betterAuthView = (context: Context) => {
 
     if (BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
         return auth.handler(context.request)
-  } else {
-    context.set.status = 405
-  }
+    } else {
+        context.set.status = 405
+    }
 }
 
 export const app = new Elysia()
@@ -38,7 +37,6 @@ export const app = new Elysia()
             }
         }
     })
-    .use(sessionMiddleware)
     .group('/api', (app) =>
         app
             .all(AUTH_ROUTE, betterAuthView)

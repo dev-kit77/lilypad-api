@@ -1,11 +1,11 @@
 import { Elysia } from 'elysia'
-import { checkAuth } from '../../../lib/middleware/requireAuth'
+import { authPlugin } from '../../../lib/middleware/auth.plugin'
 
-export const contentController = (app: Elysia) =>
-    app.guard(
-        { beforeHandle: checkAuth() },
-        (app) => app
-            .get('/content', () => {
-                return '<p>Welcome to /content</p>'
-            })
-    )
+export const contentController = new Elysia()
+    .use(authPlugin)
+    .get('/content', () => {
+        console.log(`Executed GET /content`)
+        return '<p>Welcome to /content</p>'
+    }, {
+        auth: true,
+    })

@@ -1,11 +1,11 @@
-import { Elysia, t } from 'elysia'
-import { checkRole } from '../../../lib/middleware/requireAuth'
+import { Elysia } from 'elysia'
+import { authPlugin } from '../../../lib/middleware/auth.plugin'
 
-export const adminController = (app: Elysia) =>
-    app.guard(
-        { beforeHandle: checkRole('admin') },
-        (app) => app
-            .get('/admin', () => {
-                return '<p>Welcome to /admin</p>'
-            })
-    )
+export const adminController = new Elysia()
+    .use(authPlugin)
+    .get('/admin', () => {
+        console.log(`Executed GET /admin`)
+        return '<p>Welcome to /admin</p>'
+    }, {
+        auth: 'admin',
+    })
