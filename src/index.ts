@@ -1,5 +1,6 @@
 import { Elysia, type Context } from 'elysia'
 import { userController } from './controllers/user/user.controller'
+import { contentController as feedController } from './controllers/user/feed.controller'
 import { contentController } from './controllers/user/content.controller'
 import swagger from '@elysiajs/swagger'
 import { adminController } from './controllers/admin/admin.controller'
@@ -41,6 +42,7 @@ export const app = new Elysia()
         app
             .all(AUTH_ROUTE, betterAuthView)
             .use(userController)
+            .use(feedController)
             .use(contentController)
             .use(adminController)
         )
