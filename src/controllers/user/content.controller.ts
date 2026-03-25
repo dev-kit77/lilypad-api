@@ -9,7 +9,7 @@ export const contentController = new Elysia()
     .post('/content/post', async ({ user, body, set }) => {
         console.log(`Executed POST /content/post`)
         try {
-            const { lat, lon, displayName } = body.locality
+            const { lat, lon } = body.locality
 
             // geog type is Unsupported in Prisma so all location reads/writes use raw SQL
             const existing = await prisma.$queryRaw<{ CUID: string }[]>`

@@ -36,7 +36,6 @@ export const postCreateBody = t.Object({
     locality: t.Object({
         lat: t.Number(),
         lon: t.Number(),
-        displayName: t.String({ minLength: 1 }),
     }),
 })
 
