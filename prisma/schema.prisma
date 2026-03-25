@@ -133,26 +133,14 @@ model Post {
   @@map("post")
 }
 
-///Model for location tree storage
+///Model for storing post locations as PostGIS geography points
 model Location {
   ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
-  CUID      String     @id @default(cuid()) 
-  ///Latitude of the location
-  lat       Float
-  ///Longitude of the location
-  long      Float
-  ///Parent location ID of this location
-  ParentID  String?    
-  ///Parent location of this location
-  Parent    Location?  @relation("parent", fields: [ParentID], references: [CUID])
-  ///Distance to parent object
-  distance  Float?
-  ///Radius covered by the location in the tree
-  radius    Float?
-  ///List of posts associated with this location
-  posts     Post[]
-  ///List of child locations associated with this location
-  locations Location[] @relation("parent")
+  CUID  String                          @id @default(cuid())
+  ///PostGIS geography point (lon, lat in WGS-84). Written via raw SQL — Prisma cannot set Unsupported types.
+  geog  Unsupported("geography(Point, 4326)")
+  ///Posts attached to this location
+  posts Post[]
 
   @@map("location")
 }

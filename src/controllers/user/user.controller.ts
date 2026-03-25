@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia'
 import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse } from '../../models/controllers/user.models'
 import { prisma } from '../../../lib/prisma'
-import { authPlugin } from '../../../lib/middleware/auth.plugin'
+import { authPlugin } from '../../../lib/auth/auth.plugin'
 
 export const userController = new Elysia()
     .use(authPlugin)

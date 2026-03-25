@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia'
-import { authPlugin } from '../../../lib/middleware/auth.plugin'
+import { authPlugin } from '../../../lib/auth/auth.plugin'
 
 export const adminController = new Elysia()
     .use(authPlugin)
