@@ -175,6 +175,7 @@ model Report {
   CUID           String   @id @default(cuid())
   ///User ID of the reporting user stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID         String
+  ///User object associated with the reporting user
   user           User     @relation("reportee", fields: [userID], references: [id], onDelete: Cascade)
   ///Reason given for the report
   reason         String
