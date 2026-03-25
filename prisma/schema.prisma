@@ -24,8 +24,8 @@ model User {
   banExpires            DateTime?
   sessions              Session[]
   accounts              Account[]
-  ///Array of posts a user has upvoted
   posts                 Post[]
+  ///Array of posts a user has upvoted
   upvotes               Post[]         @relation("upvotes")
   ///Profile data object to store public display data
   profile               UserProfile?
@@ -93,10 +93,15 @@ model Verification {
 
 ///User profile model. Stores user vanity data
 model UserProfile {
+  ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID String @unique
+  ///User object associated with this profile
   user   User   @relation(fields: [userID], references: [id], onDelete: Cascade)
+  ///Users display Name
   name   String
+  ///User profile biography
   bio    String
+  ///User current status
   status String
 
   @@map("user_profile")
@@ -104,11 +109,17 @@ model UserProfile {
 
 ///User settings model. Stores user settings
 model UserSettings {
+  ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID    String   @unique
+  ///User object associated with these settings
   user      User     @relation(fields: [userID], references: [id], onDelete: Cascade)
+  ///Access flag for setting the date from which the user is allowed access for implementing ban times
   access    DateTime @default(now())
+  ///Privilege flag for staff/admin access
   privilege Boolean  @default(false)
+  ///Dark flag for dark mode preference
   dark      Boolean  @default(false)
+  ///Anonymous flag for anonymous user accounts
   anon      Boolean  @default(false)
 
   @@map("user_settings")
@@ -116,18 +127,31 @@ model UserSettings {
 
 ///Post model. Stores post data.
 model Post {
+  ///Post ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   CUID         String   @id @default(cuid())
+  ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID       String
+  ///User object associated with this post
   user         User     @relation(fields: [userID], references: [id], onDelete: Cascade)
+  ///Post textual content
   content      String
+  ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   locationID   String
+  ///Location object associated with this post
   location     Location @relation(fields: [locationID], references: [CUID])
+  ///Post creation time
   time         DateTime @default(now())
+  ///Time of last action
   updated      DateTime @default(now())
+  ///Array of users who have upvoted this post
   upvotes      User[]   @relation("upvotes")
+  ///Post ID of the Post this Post is replying to
   replyingToID String?
+  ///Post object that this Post is replying to
   replyingTo   Post?    @relation("replyingTo", fields: [replyingToID], references: [CUID])
+  ///Array of replies to this post
   postReplies  Post[]   @relation("replyingTo")
+  ///Reports associated with this Post
   reports      Report[]
 
   @@map("post")
@@ -147,17 +171,28 @@ model Location {
 
 ///Report model. Stores report data.
 model Report {
+  ///Report ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   CUID           String   @id @default(cuid())
+  ///User ID of the reporting user stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID         String
   user           User     @relation("reportee", fields: [userID], references: [id], onDelete: Cascade)
+  ///Reason given for the report
   reason         String
+  ///Content of the Report
   content        String
+  ///Report creation time
   time           DateTime @default(now())
+  ///Report resolution flag
   resolved       Boolean  @default(false)
+  ///Description of the action taken based on the Report
   action         String?
+  ///User ID of the reported user stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedUserID String?
+  ///User object associated with the reported user
   reportedUser   User?    @relation("reported", fields: [reportedUserID], references: [id])
+  ///Post ID of the reported post stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedPostID String?
+  ///Post object associated with the reported post
   reportedPost   Post?    @relation(fields: [reportedPostID], references: [CUID])
 
   @@map("report")
