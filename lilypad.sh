@@ -7,19 +7,15 @@
 source ./lib/basics.sh
 
 update_env() {
-    #rename old.env file
-    mv ./.env ./.env-tmp
-
     #replace .env value with new value and store
     sed -e "s/$1=.*/$1=${!1//\//\/}/" ./.env-tmp > ./.env
     if [ $? -ne 0 ]; then cp ./.env-tmp ./.env; return $?; fi
 
     #remove temp file
     rm -f ./.env-tmp
-    if [ $? -ne 0 ]; then cp ./.env-tmp ./.env; return $?; fi
 
     #return success
-    return 0
+    return $?
 }
 
 #print script info
@@ -206,8 +202,12 @@ if [ "$ENVIROMENT" != "PROD" ]; then
 
     #modify prisma migrations
     message "Modifying migrations..."
+
     #needed SQL modification operations (e.g. adding Postgres plugins) go here after this statement
-    success "Migrations Updated"
+    sed -i '' '1s/^/-- CreateExtention\nCREATE EXTENSION IF NOT EXISTS postgis;\n\n/' ./prisma/migrations/*/migration.sql
+
+    #verify migrations
+    exit_check "Encountered error modifying migrations. Please check file permissions." "Migrations Updated!"
 
     #execute migrations on database
     message "Executing Prisma migrations on Database..."
