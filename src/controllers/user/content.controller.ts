@@ -3,7 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
-  contentGetResponse,
+  contentResponse,
   postCreateBody,
   postCreateResponse,
   postReplyBody,
@@ -44,7 +44,7 @@ export const contentController = new Elysia()
     },
     {
       auth: true,
-      response: contentGetResponse,
+      response: contentResponse,
     },
   )
   /**

@@ -2,11 +2,50 @@ import { Elysia } from 'elysia'
 import { authPlugin } from '../../../lib/auth/auth.plugin'
 import { prisma } from '../../../lib/prisma'
 import { userBanBody, userBanResponse } from '../../models/controllers/admin.models'
+import { contentResponse } from '../../models/controllers/content.models'
 
 export const adminController = new Elysia()
     // This controller only lets in requests from users
     // with role == 'admin'
     .use(authPlugin)
+    .get(
+        '/content/:userId',
+        async ({ params, set }) => {
+            console.log(`Executed GET /content/${params.userId}`)
+            const targetUser = await prisma.user.findUnique({
+                where: { id: params.userId },
+            })
+
+            if (!targetUser) {
+                set.status = 400
+                return { error: 'INVALID_ID' }
+            }
+
+            const posts = await prisma.post.findMany({
+                where: { userID: params.userId },
+                include: {
+                    user: { include: { settings: true } },
+                    _count: { select: { upvotes: true, postReplies: true } },
+                },
+                orderBy: { time: 'desc' },
+            })
+
+            return {
+                posts: posts.map((post) => ({
+                    id: post.CUID,
+                    content: post.content,
+                    author: post.user.settings?.anon ? 'Anonymous' : post.user.name,
+                    time: post.time.toISOString(),
+                    upvotes: post._count.upvotes,
+                    replyCount: post._count.postReplies,
+                })),
+            }
+        },
+        {
+            auth: 'admin',
+            response: contentResponse,
+        },
+    )
     .put(
         '/user/:userId',
         async ({ params, body, set }) => {
