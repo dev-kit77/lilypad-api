@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia'
-import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse } from '../../models/controllers/user.models'
+import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse, userPublicGetResponse } from '../../models/controllers/user.models'
 import { prisma } from '../../../lib/prisma'
 import { authPlugin } from '../../../lib/auth/auth.plugin'
 
@@ -86,3 +86,27 @@ export const userController = new Elysia()
         auth: true,
         response: userDeleteResponse,
     })
+    .get(
+        "/user/:userId",
+        async ({ params, set }) => {
+            console.log(`Executed GET /user/${params.userId}`)
+            const profile = await prisma.userProfile.findUnique({
+                where: { userID: params.userId },
+            })
+
+            if (!profile) {
+                set.status = 404
+                return { error: 'INVALID_USER' }
+            }
+
+            return {
+                name: profile.name,
+                bio: profile.bio,
+                status: profile.status,
+            }
+        },
+        {
+            auth: true,
+            response: userPublicGetResponse,
+        },
+    )
