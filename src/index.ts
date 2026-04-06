@@ -1,22 +1,51 @@
-import { Elysia } from 'elysia'
-import { authController } from './controllers/auth.controller';
-import { contentController } from './controllers/content.controller';
-import { specialController } from './controllers/special.controller';
-import { userController } from './controllers/user.controller';
-import swagger from '@elysiajs/swagger';
+import { Elysia, type Context } from 'elysia'
+import { userController } from './controllers/user/user.controller'
+import { contentController as feedController } from './controllers/user/feed.controller'
+import { contentController } from './controllers/user/content.controller'
+import swagger from '@elysiajs/swagger'
+import { adminController } from './controllers/admin/admin.controller'
+import { auth } from '../lib/auth/auth'
 
+// TODO: Remove once deployed
+import { cors } from '@elysiajs/cors'
 
-const PORT = process.env.PORT || 3000;
-export const app = new Elysia().use(swagger());
+const PORT = process.env.PORT || 3000
 
-app
-  .group('/api', (app: Elysia) =>
-    app
-      .use(authController)
-      .use(contentController)
-      .use(specialController)
-      .use(userController)
-  )
-  .listen(PORT, () => {
-    console.log(`🦊 Elysia is running at ${app.server?.hostname}:${PORT}`);
-  });
+const AUTH_ROUTE = '/auth/*'
+
+const betterAuthView = (context: Context) => {
+    const BETTER_AUTH_ACCEPT_METHODS = ['POST', 'GET']
+
+    if (BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
+        return auth.handler(context.request)
+    } else {
+        context.set.status = 405
+    }
+}
+
+export const app = new Elysia()
+    .use(cors())
+    .use(swagger())
+    .onError(({ code, error, set }) => {
+        if (code === 'VALIDATION') {
+            set.status = 400
+            return {
+                message: 'Validation failed',
+                fields: error.all.map(e => ({
+                    field: e.path.replace('/', ''),
+                    message: e.message
+                }))
+            }
+        }
+    })
+    .group('/api', (app) =>
+        app
+            .all(AUTH_ROUTE, betterAuthView)
+            .use(userController)
+            .use(feedController)
+            .use(contentController)
+            .use(adminController)
+        )
+    .listen(PORT)
+  
+console.log(`🦊 Elysia is running at ${app.server?.hostname}:${PORT}`)

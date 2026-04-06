@@ -7,42 +7,104 @@ datasource db {
   provider = "postgresql"
 }
 
-///User Model. Stores core userdata.
+// AUTHENTICATION MODELS START
+
 model User {
-  ///User ID Stored as a CUID (Collision Resistant Universally Unique Identifier)
-  CUID        String        @id @default(cuid())
-  ///User email address
-  email       String        @unique
-  ///User associated username
-  username    String        @unique
-  ///User password bcrypt hash should be protected
-  hash        String        @unique
-  ///Array of user posts objects
-  posts       Post[]
+  id                    String         @id
+  ///User associated username, despite being named "name"
+  name                  String         @unique
+  email                 String
+  emailVerified         Boolean        @default(false)
+  image                 String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  role                  String?
+  banned                Boolean?       @default(false)
+  banReason             String?
+  banExpires            DateTime?
+  sessions              Session[]
+  accounts              Account[]
+  posts                 Post[]
   ///Array of posts a user has upvoted
-  upvotes     Post[]        @relation("upvotes")
+  upvotes               Post[]         @relation("upvotes")
   ///Profile data object to store public display data
-  profile     UserProfile?
+  profile               UserProfile?
   ///Settings data object to store private user settings
-  settings    UserSettings?
+  settings              UserSettings?
   ///Array of report objects made against other users
-  reports     Report[]      @relation("reportee")
+  reports               Report[]       @relation("reportee")
   ///Array of report ojects made against the User
-  userReports Report[]      @relation("reported")
+  userReports           Report[]       @relation("reported")
+
+  @@unique([email])
+  @@map("user")
 }
+
+model Session {
+  id                    String   @id
+  expiresAt             DateTime
+  token                 String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  ipAddress             String?
+  userAgent             String?
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy        String?
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id                    String   @id
+  identifier            String
+  value                 String
+  expiresAt             DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// AUTHENTICATION MODELS END
 
 ///User profile model. Stores user vanity data
 model UserProfile {
   ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID String @unique
   ///User object associated with this profile
-  user   User   @relation(fields: [userID], references: [CUID])
+  user   User   @relation(fields: [userID], references: [id], onDelete: Cascade)
   ///Users display Name
   name   String
   ///User profile biography
   bio    String
   ///User current status
   status String
+
+  @@map("user_profile")
 }
 
 ///User settings model. Stores user settings
@@ -50,7 +112,7 @@ model UserSettings {
   ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID    String   @unique
   ///User object associated with these settings
-  user      User     @relation(fields: [userID], references: [CUID])
+  user      User     @relation(fields: [userID], references: [id], onDelete: Cascade)
   ///Access flag for setting the date from which the user is allowed access for implementing ban times
   access    DateTime @default(now())
   ///Privilege flag for staff/admin access
@@ -59,6 +121,8 @@ model UserSettings {
   dark      Boolean  @default(false)
   ///Anonymous flag for anonymous user accounts
   anon      Boolean  @default(false)
+
+  @@map("user_settings")
 }
 
 ///Post model. Stores post data.
@@ -68,7 +132,7 @@ model Post {
   ///User ID stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID       String
   ///User object associated with this post
-  user         User     @relation(fields: [userID], references: [CUID])
+  user         User     @relation(fields: [userID], references: [id], onDelete: Cascade)
   ///Post textual content
   content      String
   ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
@@ -89,28 +153,20 @@ model Post {
   postReplies  Post[]   @relation("replyingTo")
   ///Reports associated with this Post
   reports      Report[]
+
+  @@map("post")
 }
 
-///Model for location tree storage
+///Model for storing post locations as PostGIS geography points
 model Location {
   ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
-  CUID      String     @id @default(cuid()) 
-  ///Latitude of the location
-  lat       Float
-  ///Longitude of the location
-  long      Float
-  ///Parent location ID of this location
-  ParentID  String?    
-  ///Parent location of this location
-  Parent    Location?  @relation("parent", fields: [ParentID], references: [CUID])
-  ///Distance to parent object
-  distance  Float?
-  ///Radius covered by the location in the tree
-  radius    Float?
-  ///List of posts associated with this location
-  posts     Post[]
-  ///List of child locations associated with this location
-  locations Location[] @relation("parent")
+  CUID  String                          @id @default(cuid())
+  ///PostGIS geography point (lon, lat in WGS-84). Written via raw SQL — Prisma cannot set Unsupported types.
+  geog  Unsupported("geography(Point, 4326)")
+  ///Posts attached to this location
+  posts Post[]
+
+  @@map("location")
 }
 
 ///Report model. Stores report data.
@@ -120,10 +176,10 @@ model Report {
   ///User ID of the reporting user stored as a CUID (Collision Resistant Universally Unique Identifier)
   userID         String
   ///User object associated with the reporting user
-  user           User     @relation("reportee", fields: [userID], references: [CUID])
+  user           User     @relation("reportee", fields: [userID], references: [id], onDelete: Cascade)
   ///Reason given for the report
   reason         String
-  ///content of the Report
+  ///Content of the Report
   content        String
   ///Report creation time
   time           DateTime @default(now())
@@ -134,9 +190,11 @@ model Report {
   ///User ID of the reported user stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedUserID String?
   ///User object associated with the reported user
-  reportedUser   User?    @relation("reported", fields: [reportedUserID], references: [CUID])
+  reportedUser   User?    @relation("reported", fields: [reportedUserID], references: [id])
   ///Post ID of the reported post stored as a CUID (Collision Resistant Universally Unique Identifier)
   reportedPostID String?
   ///Post object associated with the reported post
   reportedPost   Post?    @relation(fields: [reportedPostID], references: [CUID])
+
+  @@map("report")
 }
