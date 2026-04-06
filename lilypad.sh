@@ -8,8 +8,8 @@ source ./lib/basics.sh
 
 update_env() {
     #replace .env value with new value and store
-    sed -e "s/$1=.*/$1=${!1//\//\/}/" ./.env-tmp > ./.env
-    if [ $? -ne 0 ]; then cp ./.env-tmp ./.env; return $?; fi
+    sed -i "-tmp" "s#$1=.*#$1=${!1//\//\/}#" ./.env
+    if [ $? -ne 0 ]; then cp ./.env-tmp ./.env; return 1; fi
 
     #remove temp file
     rm -f ./.env-tmp
