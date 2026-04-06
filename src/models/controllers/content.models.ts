@@ -13,6 +13,7 @@ export const contentGetResponse = {
     200: t.Object({
         posts: t.Array(postItem),
     }),
+    403: t.Object({ error: t.String() }),
 }
 
 export const spatialPostItem = t.Object({

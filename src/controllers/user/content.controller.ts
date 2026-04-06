@@ -3,6 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
+  contentGetResponse,
   postCreateBody,
   postCreateResponse,
   postReplyBody,
@@ -17,6 +18,35 @@ import {
  */
 export const contentController = new Elysia()
   .use(authPlugin)
+  .get(
+    "/content",
+    async ({ user }) => {
+      console.log(`Executed GET /content`);
+      const posts = await prisma.post.findMany({
+        where: { userID: user.id },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+        orderBy: { time: "desc" },
+      });
+
+      return {
+        posts: posts.map((post) => ({
+          id: post.CUID,
+          content: post.content,
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time.toISOString(),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        })),
+      };
+    },
+    {
+      auth: true,
+      response: contentGetResponse,
+    },
+  )
   /**
    * Create a new post at the supplied locality.
    * Reuses an existing nearby location if one is found within 1 meter.
