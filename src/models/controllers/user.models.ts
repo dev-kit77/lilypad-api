@@ -47,3 +47,15 @@ export const userPublicGetResponse = {
     }),
     404: t.Object({ error: t.String() }),
 }
+
+export const userReportBody = t.Object({
+    reason: t.String(),
+    content: t.String(),
+    action: t.Optional(t.String()),
+    reportedUserID: t.String()
+})
+
+export const userReportResponse = {
+    200: t.Object({ status: t.String() }),
+    400: t.Object({ error: t.String() }),
+}

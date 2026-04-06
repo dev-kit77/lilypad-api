@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia'
-import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse, userPublicGetResponse } from '../../models/controllers/user.models'
+import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse, userPublicGetResponse, userReportBody, userReportResponse } from '../../models/controllers/user.models'
 import { prisma } from '../../../lib/prisma'
 import { authPlugin } from '../../../lib/auth/auth.plugin'
 
@@ -108,5 +108,32 @@ export const userController = new Elysia()
         {
             auth: true,
             response: userPublicGetResponse,
+        },
+    )
+    .post(
+        '/user/:userId/report',
+        async ({ user, params, body, set }) => {
+            console.log(`Executed POST /user/${params.userId}/report`)
+            try {
+                await prisma.report.create({
+                    data: {
+                        userID: user.id,
+                        reportedUserID: params.userId,
+                        reason: body.reason,
+                        content: body.content,
+                        action: body.action
+                    },
+                })
+
+                return { status: 'OK' }
+            } catch (e) {
+                set.status = 400
+                return { error: 'INVALID_FIELD' }
+            }
+        },
+        {
+            auth: true,
+            body: userReportBody,
+            response: userReportResponse,
         },
     )
