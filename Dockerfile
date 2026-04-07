@@ -51,7 +51,8 @@ COPY lib ./lib
 RUN DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public" bunx prisma generate
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Windows checkouts often use CRLF; Linux then fails with "no such file or directory" on exec.
+RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 ENV PGDATA=/var/lib/postgresql/data
 ENV NODE_ENV=production
