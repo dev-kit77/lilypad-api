@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia'
-import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse } from '../../models/controllers/user.models'
+import { userGetResponse, userUpdateBody, userUpdateResponse, userDeleteResponse, userPublicGetResponse, userReportBody, userReportResponse } from '../../models/controllers/user.models'
 import { prisma } from '../../../lib/prisma'
 import { authPlugin } from '../../../lib/auth/auth.plugin'
 
@@ -29,6 +29,10 @@ export const userController = new Elysia()
     }, {
         auth: true,
         response: userGetResponse,
+        detail: {
+            description: 'Return the current user’s profile and settings.',
+            tags: ['User']
+        }
     })
     .put('/user', async ({ user, body, set }) => {
         console.log(`Executed PUT /user`)
@@ -65,6 +69,10 @@ export const userController = new Elysia()
         auth: true,
         body: userUpdateBody,
         response: userUpdateResponse,
+        detail: {
+            description: 'Update the current user’s profile and settings.',
+            tags: ['User']
+        }
     })
     .delete('/user', async ({ user, set }) => {
         console.log(`Executed DELETE /user`)
@@ -85,4 +93,67 @@ export const userController = new Elysia()
     }, {
         auth: true,
         response: userDeleteResponse,
+        detail: {
+            description: 'Delete the current user’s profile and all data associated with it.',
+            tags: ['User']
+        }
     })
+    .get(
+        "/user/:userId",
+        async ({ params, set }) => {
+            console.log(`Executed GET /user/${params.userId}`)
+            const profile = await prisma.userProfile.findUnique({
+                where: { userID: params.userId },
+            })
+
+            if (!profile) {
+                set.status = 404
+                return { error: 'INVALID_USER' }
+            }
+
+            return {
+                name: profile.name,
+                bio: profile.bio,
+                status: profile.status,
+            }
+        },
+        {
+            auth: true,
+            response: userPublicGetResponse,
+            detail: {
+                description: 'Return the specified user’s profile information. This is an admin-only endpoint.',
+                tags: ['User']
+            }
+        },
+    )
+    .post(
+        '/user/:userId/report',
+        async ({ user, params, body, set }) => {
+            console.log(`Executed POST /user/${params.userId}/report`)
+            try {
+                await prisma.report.create({
+                    data: {
+                        userID: user.id,
+                        reportedUserID: params.userId,
+                        reason: body.reason,
+                        content: body.content,
+                        action: body.action
+                    },
+                })
+
+                return { status: 'OK' }
+            } catch (e) {
+                set.status = 400
+                return { error: 'INVALID_FIELD' }
+            }
+        },
+        {
+            auth: true,
+            body: userReportBody,
+            response: userReportResponse,
+            detail: {
+                description: 'File a report against the user specified in the path parameter {userId}.',
+                tags: ['User']
+            }
+        },
+    )
