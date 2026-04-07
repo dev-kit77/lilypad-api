@@ -5,7 +5,7 @@ import { contentController } from "./controllers/user/content.controller";
 import swagger from "@elysiajs/swagger";
 import { adminController } from "./controllers/admin/admin.controller";
 import { auth } from "../lib/auth/auth";
-import { log } from "../lib/logger";
+import { log } from "../lib/log";
 
 // TODO: Remove once deployed
 import { cors } from "@elysiajs/cors";
