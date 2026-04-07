@@ -5,7 +5,7 @@ import { contentController } from "./controllers/user/content.controller";
 import swagger from "@elysiajs/swagger";
 import { adminController } from "./controllers/admin/admin.controller";
 import { auth } from "../lib/auth/auth";
-import { ClientLog } from "../lib/logger";
+import { log } from "../lib/logger";
 
 // TODO: Remove once deployed
 import { cors } from "@elysiajs/cors";
@@ -23,8 +23,6 @@ const betterAuthView = (context: Context) => {
     context.set.status = 405;
   }
 };
-
-const log = new ClientLog("SERVER", "api.log");
 
 export const app = new Elysia()
   .use(cors())
