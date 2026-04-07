@@ -20,6 +20,8 @@ services:
       # Required in production (NODE_ENV=production): non-default secret and public API URL
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-docker-secret-replace-in-production-min-32-chars}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      # Host integration tests: same value in your shell/.env when running `bun test`
+      TEST_ADMIN_PROMOTE_SECRET: ${TEST_ADMIN_PROMOTE_SECRET:-lilypad-local-test-promote-only}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

@@ -4,6 +4,7 @@ import { contentController as feedController } from './controllers/user/feed.con
 import { contentController } from './controllers/user/content.controller'
 import swagger from '@elysiajs/swagger'
 import { adminController } from './controllers/admin/admin.controller'
+import { testController } from './controllers/test/test.controller'
 import { auth } from '../lib/auth/auth'
 import { cors } from '@elysiajs/cors'
 
@@ -41,4 +42,5 @@ export const app = new Elysia()
             .use(feedController)
             .use(contentController)
             .use(adminController)
+            .use(testController)
     )

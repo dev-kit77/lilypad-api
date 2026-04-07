@@ -63,6 +63,8 @@ ENV POSTGRES_DB=lilypad
 # Better Auth (required when NODE_ENV=production — override BETTER_AUTH_SECRET for real deploys)
 ENV BETTER_AUTH_URL=http://localhost:3000
 ENV BETTER_AUTH_SECRET=dev-docker-secret-replace-in-production-min-32-chars
+# Integration tests (bun test): must match test/setup.ts; override or unset in real deployments.
+ENV TEST_ADMIN_PROMOTE_SECRET=lilypad-local-test-promote-only
 
 EXPOSE 3000 5432
 
