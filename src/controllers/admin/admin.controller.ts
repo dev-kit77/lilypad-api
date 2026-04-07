@@ -50,6 +50,10 @@ export const adminController = new Elysia()
         {
             auth: 'admin',
             response: contentResponse,
+            detail: {
+                description: 'Return the list of posts and comments associated with the specified user. This is an admin-only endpoint.',
+                tags: ['Content']
+            }
         },
     )
     .put(
@@ -90,5 +94,9 @@ export const adminController = new Elysia()
             auth: 'admin',
             body: userBanBody,
             response: userBanResponse,
+            detail: {
+                description: 'Ban/Unban the specified user. This is an admin-only endpoint.',
+                tags: ['User']
+            }
         },
     )

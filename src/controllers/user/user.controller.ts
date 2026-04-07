@@ -29,6 +29,10 @@ export const userController = new Elysia()
     }, {
         auth: true,
         response: userGetResponse,
+        detail: {
+            description: 'Return the current user’s profile and settings.',
+            tags: ['User']
+        }
     })
     .put('/user', async ({ user, body, set }) => {
         console.log(`Executed PUT /user`)
@@ -65,6 +69,10 @@ export const userController = new Elysia()
         auth: true,
         body: userUpdateBody,
         response: userUpdateResponse,
+        detail: {
+            description: 'Update the current user’s profile and settings.',
+            tags: ['User']
+        }
     })
     .delete('/user', async ({ user, set }) => {
         console.log(`Executed DELETE /user`)
@@ -85,6 +93,10 @@ export const userController = new Elysia()
     }, {
         auth: true,
         response: userDeleteResponse,
+        detail: {
+            description: 'Delete the current user’s profile and all data associated with it.',
+            tags: ['User']
+        }
     })
     .get(
         "/user/:userId",
@@ -108,6 +120,10 @@ export const userController = new Elysia()
         {
             auth: true,
             response: userPublicGetResponse,
+            detail: {
+                description: 'Return the specified user’s profile information. This is an admin-only endpoint.',
+                tags: ['User']
+            }
         },
     )
     .post(
@@ -135,5 +151,9 @@ export const userController = new Elysia()
             auth: true,
             body: userReportBody,
             response: userReportResponse,
+            detail: {
+                description: 'File a report against the user specified in the path parameter {userId}.',
+                tags: ['User']
+            }
         },
     )

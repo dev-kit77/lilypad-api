@@ -55,6 +55,10 @@ export const contentController = new Elysia()
     {
       auth: true,
       response: contentResponse,
+      detail: {
+        description: 'Returns the list of posts and comments associated with the current user.',
+        tags: ['Content']
+      }
     },
   )
   /**
@@ -105,6 +109,10 @@ export const contentController = new Elysia()
       auth: true,
       body: postCreateBody,
       response: postCreateResponse,
+      detail: {
+        description: 'Create a new post.',
+        tags: ['Content']
+      }
     },
   )
   /**
@@ -144,6 +152,10 @@ export const contentController = new Elysia()
       auth: true,
       body: postReplyBody,
       response: postReplyResponse,
+      detail: {
+        description: 'Create a new reply to a post object.',
+        tags: ['Content']
+      }
     },
   )
   /**
@@ -185,5 +197,9 @@ export const contentController = new Elysia()
     {
       auth: true,
       response: postRepliesResponse,
+      detail: {
+        description: 'Return all replies to a post object.',
+        tags: ['Content']
+      }
     },
   );
