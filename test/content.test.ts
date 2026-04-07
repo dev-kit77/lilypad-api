@@ -76,14 +76,16 @@ describe('Content endpoints', () => {
     // -------------------------------------------------------------------------
 
     describe('GET /api/content (authenticated)', () => {
-        // Verifies that the current user's posts are returned as an array
-        it('returns 200 with posts array', async () => {
+        // Verifies that the current user's root posts and replies are returned as separate arrays
+        it('returns 200 with posts and comments arrays', async () => {
             const res = await app.handle(authedRequest('/content', session.cookie))
             expect(res.status).toBe(200)
 
             const body = await res.json() as Record<string, unknown>
             expect(body).toHaveProperty('posts')
+            expect(body).toHaveProperty('comments')
             expect(Array.isArray(body.posts)).toBe(true)
+            expect(Array.isArray(body.comments)).toBe(true)
         })
     })
 

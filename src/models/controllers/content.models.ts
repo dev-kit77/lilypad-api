@@ -12,6 +12,7 @@ export const postItem = t.Object({
 export const contentResponse = {
     200: t.Object({
         posts: t.Array(postItem),
+        comments: t.Array(postItem),
     }),
     400: t.Object({ error: t.String() }),
     403: t.Object({ error: t.String() }),

@@ -21,7 +21,7 @@ export const adminController = new Elysia()
                 return { error: 'INVALID_ID' }
             }
 
-            const posts = await prisma.post.findMany({
+            const rows = await prisma.post.findMany({
                 where: { userID: params.userId },
                 include: {
                     user: { include: { settings: true } },
@@ -30,15 +30,21 @@ export const adminController = new Elysia()
                 orderBy: { time: 'desc' },
             })
 
+            const toItem = (post: (typeof rows)[number]) => ({
+                id: post.CUID,
+                content: post.content,
+                author: post.user.settings?.anon ? 'Anonymous' : post.user.name,
+                time: post.time.toISOString(),
+                upvotes: post._count.upvotes,
+                replyCount: post._count.postReplies,
+            })
+
+            const rootPosts = rows.filter((p) => p.replyingToID == null)
+            const replyPosts = rows.filter((p) => p.replyingToID != null)
+
             return {
-                posts: posts.map((post) => ({
-                    id: post.CUID,
-                    content: post.content,
-                    author: post.user.settings?.anon ? 'Anonymous' : post.user.name,
-                    time: post.time.toISOString(),
-                    upvotes: post._count.upvotes,
-                    replyCount: post._count.postReplies,
-                })),
+                posts: rootPosts.map(toItem),
+                comments: replyPosts.map(toItem),
             }
         },
         {

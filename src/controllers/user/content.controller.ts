@@ -22,7 +22,7 @@ export const contentController = new Elysia()
     "/content",
     async ({ user }) => {
       console.log(`Executed GET /content`);
-      const posts = await prisma.post.findMany({
+      const rows = await prisma.post.findMany({
         where: { userID: user.id },
         include: {
           user: { include: { settings: true } },
@@ -31,15 +31,25 @@ export const contentController = new Elysia()
         orderBy: { time: "desc" },
       });
 
+      const toItem = (post: (typeof rows)[number]) => ({
+        id: post.CUID,
+        content: post.content,
+        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        time: post.time.toISOString(),
+        upvotes: post._count.upvotes,
+        replyCount: post._count.postReplies,
+      });
+
+      const rootPosts = rows.filter((p) => p.replyingToID == null);
+      const replyPosts = rows.filter((p) => p.replyingToID != null);
+
+      console.log(
+        `GET /content user=${user.id}: ${rootPosts.length} post(s), ${replyPosts.length} comment(s) (replies)`,
+      );
+
       return {
-        posts: posts.map((post) => ({
-          id: post.CUID,
-          content: post.content,
-          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-          time: post.time.toISOString(),
-          upvotes: post._count.upvotes,
-          replyCount: post._count.postReplies,
-        })),
+        posts: rootPosts.map(toItem),
+        comments: replyPosts.map(toItem),
       };
     },
     {
@@ -75,7 +85,7 @@ export const contentController = new Elysia()
                     VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography)
                 `;
         }
-
+        console.log(`creating post by user ${user.id} with content ${body.content}`)
         await prisma.post.create({
           data: {
             userID: user.id,
