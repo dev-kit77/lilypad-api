@@ -5,6 +5,7 @@ import { contentController } from './controllers/user/content.controller'
 import swagger from '@elysiajs/swagger'
 import { adminController } from './controllers/admin/admin.controller'
 import { testController } from './controllers/test/test.controller'
+import { pingController } from './controllers/user/ping.controller'
 import { auth } from '../lib/auth/auth'
 import { cors } from '@elysiajs/cors'
 
@@ -38,6 +39,7 @@ export const app = new Elysia()
     .group('/api', (app) =>
         app
             .all(AUTH_ROUTE, betterAuthView)
+            .use(pingController)
             .use(userController)
             .use(feedController)
             .use(contentController)
