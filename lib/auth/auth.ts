@@ -20,5 +20,26 @@ export const auth = betterAuth({
         database: {
             generateId: () => createId()
         }
-    }
+    },
+    databaseHooks: {
+        user: {
+            create: {
+                after: async (user) => {
+                    await prisma.userProfile.create({
+                        data: {
+                            userID: user.id,
+                            name: user.name,
+                            bio: '',
+                            status: '',
+                        },
+                    })
+                    await prisma.userSettings.create({
+                        data: {
+                            userID: user.id,
+                        },
+                    })
+                },
+            },
+        },
+    },
 });
