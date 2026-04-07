@@ -26,6 +26,7 @@
     "dev": "./lilypad.sh -e DEV",
     "prod": "./lilypad.sh -e PROD",
     "init": "./lilypad.sh -e INIT",
-    "reset": "./lilypad.sh -e INIT"
+    "reset": "./lilypad.sh -e INIT",
+    "test": "bun test"
   }
 }

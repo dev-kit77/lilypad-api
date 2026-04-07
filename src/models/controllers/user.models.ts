@@ -52,7 +52,6 @@ export const userReportBody = t.Object({
     reason: t.String(),
     content: t.String(),
     action: t.Optional(t.String()),
-    reportedUserID: t.String()
 })
 
 export const userReportResponse = {
