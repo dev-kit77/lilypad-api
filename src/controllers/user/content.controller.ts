@@ -6,6 +6,8 @@ import {
   contentResponse,
   postCreateBody,
   postCreateResponse,
+  postReportBody,
+  postReportResponse,
   postReplyBody,
   postReplyResponse,
   postRepliesResponse,
@@ -134,6 +136,44 @@ export const contentController = new Elysia()
       detail: {
         description: "Create a new post.",
         tags: ["Content"],
+      },
+    },
+  )
+  .post(
+    "/content/post/:postId",
+    async ({ user, params, body, set }) => {
+      log.out(
+        `POST request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+      try {
+        log.out(`Creating Report for ${params.postId}`, "user-controller");
+        await prisma.report.create({
+          data: {
+            userID: user.id,
+            reportedPostID: params.postId,
+            reason: body.reason,
+            content: body.content,
+            action: body.action,
+          },
+        });
+        log.success(`Report filed for ${params.postId}`, "user-controller");
+
+        return { status: "OK" };
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Invalid field: ${e}`, "user-controller");
+        return { error: "INVALID_FIELD" };
+      }
+    },
+    {
+      auth: true,
+      body: postReportBody,
+      response: postReportResponse,
+      detail: {
+        description:
+          "File a report about the post specified in the path parameter {postId}.",
+        tags: ["User"],
       },
     },
   )
