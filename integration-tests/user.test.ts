@@ -83,6 +83,54 @@ describe("User endpoints", () => {
     });
   });
 
+  describe("GET /api/user/gdpr-sar (authenticated)", () => {
+    it("returns 200 with downloadable JSON and anonymised reporters", async () => {
+      const reporter = await signUp(
+        `reporter-${Date.now()}@test.com`,
+        TEST_PASSWORD,
+        `reporter${Date.now()}`,
+      );
+      try {
+        await authedFetch(`/user/${session.userId}/report`, reporter.cookie, {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "spam",
+            content: "SAR anonymisation test",
+          }),
+        });
+
+        const res = await authedFetch("/user/gdpr-sar", session.cookie);
+        expect(res.status).toBe(200);
+
+        const disposition = res.headers.get("content-disposition") ?? "";
+        expect(disposition).toContain("attachment;");
+        expect(disposition).toContain("lilypad-gdpr-sar-");
+
+        const body = (await res.json()) as Record<string, unknown>;
+        expect(body).toHaveProperty("generatedAt");
+        expect(body).toHaveProperty("requestType");
+        expect(body).toHaveProperty("user");
+        expect(body).toHaveProperty("reportsAgainstUser");
+
+        const user = body.user as Record<string, unknown>;
+        expect(user.id).toBe(session.userId);
+
+        const reportsAgainstUser = body.reportsAgainstUser as Array<
+          Record<string, unknown>
+        >;
+        expect(reportsAgainstUser.length).toBeGreaterThan(0);
+        const firstReport = reportsAgainstUser[0];
+        if (!firstReport) {
+          throw new Error("Expected at least one report in reportsAgainstUser");
+        }
+        expect(firstReport).not.toHaveProperty("userID");
+        expect(firstReport.reporter).toBe("ANONYMISED");
+      } finally {
+        await deleteCurrentUser(reporter.cookie);
+      }
+    });
+  });
+
   describe("GET /api/user/:userId (authenticated)", () => {
     it("returns 200 with profile data for a valid user", async () => {
       const res = await authedFetch(`/user/${session.userId}`, session.cookie);
