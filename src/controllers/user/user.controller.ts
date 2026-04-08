@@ -294,8 +294,7 @@ export const userController = new Elysia()
       auth: true,
       response: userPublicGetResponse,
       detail: {
-        description:
-          "Return the specified user’s profile information.",
+        description: "Return the specified user’s profile information.",
         tags: ["User"],
       },
     },
@@ -303,7 +302,7 @@ export const userController = new Elysia()
   .post(
     "/user/:userId/report",
     async ({ user, params, body, set }) => {
-      console.log(`Executed POST /user/${params.userId}/report`);
+      log.out(`Executed POST /user/${params.userId}/report`, "user-controller");
       try {
         log.out(`Creating Report for ${params.userId}`, "user-controller");
         await prisma.report.create({
