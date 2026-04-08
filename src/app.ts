@@ -37,23 +37,24 @@ export const app = new Elysia()
             }
         }
     })
+    .onBeforeHandle(async ({ request, set }) => {
+        // Rate limiting
+        const ip = getClientIp(request)
+        const result = await checkRateLimit(ip)
+        const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000)
+
+        set.headers['X-RateLimit-Limit'] = String(RATE_LIMIT_MAX_REQUESTS)
+        set.headers['X-RateLimit-Remaining'] = String(result.remaining)
+        set.headers['X-RateLimit-Reset'] = String(Math.floor(result.resetAt / 1000))
+
+        if (result.limited) {
+            set.headers['Retry-After'] = String(Math.max(1, retryAfterSeconds))
+            set.status = 429
+            return { error: 'RATE_LIMIT_EXCEEDED' }
+        }
+    })
     .group('/api', (app) =>
         app
-            .onBeforeHandle(async ({ request, set }) => {
-                const ip = getClientIp(request)
-                const result = await checkRateLimit(ip)
-                const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000)
-
-                set.headers['X-RateLimit-Limit'] = String(RATE_LIMIT_MAX_REQUESTS)
-                set.headers['X-RateLimit-Remaining'] = String(result.remaining)
-                set.headers['X-RateLimit-Reset'] = String(Math.floor(result.resetAt / 1000))
-
-                if (result.limited) {
-                    set.headers['Retry-After'] = String(Math.max(1, retryAfterSeconds))
-                    set.status = 429
-                    return { error: 'RATE_LIMIT_EXCEEDED' }
-                }
-            })
             .all(AUTH_ROUTE, betterAuthView)
             .use(pingController)
             .use(userController)
