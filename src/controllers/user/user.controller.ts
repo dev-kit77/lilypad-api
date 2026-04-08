@@ -216,7 +216,7 @@ export const userController = new Elysia()
             auth: true,
             response: userPublicGetResponse,
             detail: {
-                description: 'Return the specified user’s profile information. This is an admin-only endpoint.',
+                description: 'Return the specified user’s profile information.',
                 tags: ['User']
             }
         },
