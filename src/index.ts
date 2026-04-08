@@ -50,3 +50,8 @@ export const app = new Elysia()
   .listen(PORT);
 
 log.out(`🦊 Elysia is running at ${app.server?.hostname}:${PORT}`, "core");
+
+while (true) {
+  await new Promise((resolve) => setTimeout(resolve, 240000));
+  log.out(`⏱️  Uptime: ${await log.uptime()}`, "core");
+}
