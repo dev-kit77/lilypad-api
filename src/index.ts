@@ -49,4 +49,4 @@ export const app = new Elysia()
   )
   .listen(PORT);
 
-log.out(`🦊 Elysia is running at ${app.server?.hostname}:${PORT}`);
+log.out(`🦊 Elysia is running at ${app.server?.hostname}:${PORT}`, "core");
