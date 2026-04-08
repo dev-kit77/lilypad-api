@@ -58,6 +58,15 @@ export const postReportResponse = {
   400: t.Object({ error: t.String() }),
 };
 
+export const postUpdateBody = t.Object({
+  content: t.String({ minLength: 1 }),
+});
+
+export const postUpdateResponse = {
+  200: t.Object({ status: t.String() }),
+  400: t.Object({ error: t.String() }),
+};
+
 export const postReplyBody = t.Object({
   content: t.String({ minLength: 1 }),
 });

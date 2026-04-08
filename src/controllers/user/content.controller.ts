@@ -8,6 +8,8 @@ import {
   postCreateResponse,
   postReportBody,
   postReportResponse,
+  postUpdateBody,
+  postUpdateResponse,
   postReplyBody,
   postReplyResponse,
   postRepliesResponse,
@@ -235,6 +237,54 @@ export const contentController = new Elysia()
       response: postReplyResponse,
       detail: {
         description: "Create a new reply to a post object.",
+        tags: ["Content"],
+      },
+    },
+  )
+  /**
+   * Update the content of a post.
+   */
+  .put(
+    "/content/post/:postId",
+    async ({ user, params, body, set }) => {
+      log.out(
+        `PUT request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+
+      try {
+        log.out(
+          `Updating post ${params.postId} content to ${body.content}`,
+          "content-controller",
+        );
+        const result = await prisma.post.update({
+          where: { CUID: params.postId, userID: user.id },
+          data: { content: body.content, updated: new Date() },
+        });
+        
+        if (!result) {
+          set.status = 403;
+          log.err(403, `User does not have privelge to modify`, "user-controller");
+          return { error: "FORBIDDEN" };
+        }
+        log.success(
+          `Post ${params.postId} content updated to ${body.content}`,
+          "content-controller",
+        );
+
+        return { status: "OK" };
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Invalid field: ${e}`, "user-controller");
+        return { error: "INVALID_FIELD" };
+      }
+    },
+    {
+      auth: true,
+      body: postUpdateBody,
+      response: postUpdateResponse,
+      detail: {
+        description: "Update a previously made Post.",
         tags: ["Content"],
       },
     },
