@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      TEST_API_BASE: http://127.0.0.1:3000
+      TEST_API_BASE: http://localhost:3000
       TEST_ADMIN_PROMOTE_SECRET: lilypad-local-test-promote-only
 
     steps:
@@ -31,7 +31,7 @@ jobs:
       - name: Wait for API readiness
         run: |
           for i in {1..60}; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/user || true)
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/user || true)
             if [ "$code" = "401" ]; then
               echo "API ready"
               exit 0
