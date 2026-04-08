@@ -1,0 +1,39 @@
+# All-in-one: one image runs PostgreSQL 16 + PostGIS and the Bun API (multi-arch: amd64 + arm64).
+# PostGIS is enabled via CREATE EXTENSION in docker-entrypoint.sh before migrations.
+#
+#   docker compose up --build
+#
+# API: http://localhost:${API_PORT:-3000}
+# Postgres is also exposed on ${POSTGRES_PORT:-5432} for local tools (optional).
+
+services:
+  lilypad:
+    build: .
+    depends_on:
+      - redis
+    ports:
+      - "${API_PORT:-3000}:3000"
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      PORT: "3000"
+      POSTGRES_USER: ${POSTGRES_USER:-lilypad}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lilypad}
+      POSTGRES_DB: ${POSTGRES_DB:-lilypad}
+      # Required in production (NODE_ENV=production): non-default secret and public API URL
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-docker-secret-replace-in-production-min-32-chars}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      # Host integration tests: same value in your shell/.env when running `bun test`
+      TEST_ADMIN_PROMOTE_SECRET: ${TEST_ADMIN_PROMOTE_SECRET:-lilypad-local-test-promote-only}
+      # Redis-backed rate limiting (see src/app.ts). If omitted, app falls back to in-memory.
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+volumes:
+  postgres_data:
