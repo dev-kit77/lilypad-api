@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 
 const base = () => process.env.TEST_API_BASE!;
-const LIMIT = 120;
+const LIMIT = 300;
 
 describe("Rate limiting", () => {
   it("returns 429 after exceeding per-IP request limit on /api/", async () => {

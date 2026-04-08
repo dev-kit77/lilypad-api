@@ -1,7 +1,8 @@
 import { redis } from 'bun'
 
-export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
-export const RATE_LIMIT_MAX_REQUESTS = 120
+// 5 requests/second equivalent using a 1-minute fixed window.
+export const RATE_LIMIT_WINDOW_MS = 60 * 1000
+export const RATE_LIMIT_MAX_REQUESTS = 300
 const RATE_LIMIT_WINDOW_SECS = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
 
 export interface RateLimitResult {
