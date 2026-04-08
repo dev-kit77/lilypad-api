@@ -8,6 +8,7 @@ import { testController } from './controllers/test/test.controller'
 import { pingController } from './controllers/user/ping.controller'
 import { auth } from '../lib/auth/auth'
 import { cors } from '@elysiajs/cors'
+import { checkRateLimit, getClientIp, RATE_LIMIT_MAX_REQUESTS } from './service/rate-limit.service'
 
 const AUTH_ROUTE = '/auth/*'
 
@@ -38,6 +39,21 @@ export const app = new Elysia()
     })
     .group('/api', (app) =>
         app
+            .onBeforeHandle(async ({ request, set }) => {
+                const ip = getClientIp(request)
+                const result = await checkRateLimit(ip)
+                const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000)
+
+                set.headers['X-RateLimit-Limit'] = String(RATE_LIMIT_MAX_REQUESTS)
+                set.headers['X-RateLimit-Remaining'] = String(result.remaining)
+                set.headers['X-RateLimit-Reset'] = String(Math.floor(result.resetAt / 1000))
+
+                if (result.limited) {
+                    set.headers['Retry-After'] = String(Math.max(1, retryAfterSeconds))
+                    set.status = 429
+                    return { error: 'RATE_LIMIT_EXCEEDED' }
+                }
+            })
             .all(AUTH_ROUTE, betterAuthView)
             .use(pingController)
             .use(userController)
