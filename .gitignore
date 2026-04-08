@@ -35,7 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Prisma generated files
 /generated/prisma
-/prisma/migrations
 
 # Old files
 *.old

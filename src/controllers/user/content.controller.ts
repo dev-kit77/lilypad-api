@@ -3,6 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
+  contentResponse,
   postCreateBody,
   postCreateResponse,
   postReplyBody,
@@ -11,8 +12,61 @@ import {
 } from "../../models/controllers/content.models";
 import { log } from "../../../lib/log";
 
+/**
+ * User content controller.
+ *
+ * Handles authenticated content operations for the current user.
+ */
 export const contentController = new Elysia()
   .use(authPlugin)
+  .get(
+    "/content",
+    async ({ user }) => {
+      console.log(`Executed GET /content`);
+      const rows = await prisma.post.findMany({
+        where: { userID: user.id },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+        orderBy: { time: "desc" },
+      });
+
+      const toItem = (post: (typeof rows)[number]) => ({
+        id: post.CUID,
+        content: post.content,
+        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        time: post.time.toISOString(),
+        upvotes: post._count.upvotes,
+        replyCount: post._count.postReplies,
+      });
+
+      const rootPosts = rows.filter((p) => p.replyingToID == null);
+      const replyPosts = rows.filter((p) => p.replyingToID != null);
+
+      console.log(
+        `GET /content user=${user.id}: ${rootPosts.length} post(s), ${replyPosts.length} comment(s) (replies)`,
+      );
+
+      return {
+        posts: rootPosts.map(toItem),
+        comments: replyPosts.map(toItem),
+      };
+    },
+    {
+      auth: true,
+      response: contentResponse,
+      detail: {
+        description:
+          "Returns the list of posts and comments associated with the current user.",
+        tags: ["Content"],
+      },
+    },
+  )
+  /**
+   * Create a new post at the supplied locality.
+   * Reuses an existing nearby location if one is found within 1 meter.
+   */
   .post(
     "/content/post",
     async ({ user, body, set }) => {
@@ -74,8 +128,16 @@ export const contentController = new Elysia()
       auth: true,
       body: postCreateBody,
       response: postCreateResponse,
+      detail: {
+        description: "Create a new post.",
+        tags: ["Content"],
+      },
     },
   )
+  /**
+   * Create a new post at the supplied locality.
+   * Reuses an existing nearby location if one is found within 1 meter.
+   */
   .post(
     "/content/post/:postId/reply",
     async ({ user, params, body, set }) => {
@@ -128,8 +190,16 @@ export const contentController = new Elysia()
       auth: true,
       body: postReplyBody,
       response: postReplyResponse,
+      detail: {
+        description: "Create a new reply to a post object.",
+        tags: ["Content"],
+      },
     },
   )
+  /**
+   * Create a reply to an existing post.
+   * Validates that the parent post exists before creating the reply.
+   */
   .get(
     "/content/post/:postId/reply",
     async ({ params, set }) => {
@@ -178,5 +248,9 @@ export const contentController = new Elysia()
     {
       auth: true,
       response: postRepliesResponse,
+      detail: {
+        description: "Return all replies to a post object.",
+        tags: ["Content"],
+      },
     },
   );

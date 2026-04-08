@@ -63,5 +63,9 @@ export const contentController = new Elysia().use(authPlugin).get(
     auth: true,
     query: feedSpatialQuery,
     response: spatialContentGetResponse,
+    detail: {
+      description: "Return a list of posts filtered by locality.",
+      tags: ["Feed"],
+    },
   },
 );
