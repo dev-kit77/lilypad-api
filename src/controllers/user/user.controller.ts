@@ -180,11 +180,6 @@ export const userController = new Elysia()
                     name: anonymisedName,
                     email: anonymisedEmail,
                     image: null,
-                    role: null,
-                    emailVerified: false,
-                    banned: true,
-                    banReason: 'ACCOUNT_DELETED',
-                    banExpires: null,
                 },
             }),
         ])
