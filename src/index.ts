@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT);
 
-console.log(`Lilypad API is running at ${app.server?.hostname}:${PORT}`);
+log.out(`Lilypad API is running at ${app.server?.hostname}:${PORT}`, "core");
 
 while (true) {
   await new Promise((resolve) => setTimeout(resolve, 240000));
