@@ -1,103 +1,130 @@
-import { Elysia } from 'elysia'
-import { authPlugin } from '../../../lib/auth/auth.plugin'
-import { prisma } from '../../../lib/prisma'
-import { userBanBody, userBanResponse } from '../../models/controllers/admin.models'
-import { contentResponse } from '../../models/controllers/content.models'
+import { Elysia } from "elysia";
+import { authPlugin } from "../../../lib/auth/auth.plugin";
+import { prisma } from "../../../lib/prisma";
+import {
+  userBanBody,
+  userBanResponse,
+} from "../../models/controllers/admin.models";
+import { contentResponse } from "../../models/controllers/content.models";
 import { log } from "../../../lib/log";
 
 export const adminController = new Elysia()
-    // This controller only lets in requests from users
-    // with role == 'admin'
-    .use(authPlugin)
-    .get(
-        '/content/:userId',
-        async ({ params, set }) => {
-            console.log(`Executed GET /content/${params.userId}`)
-            const targetUser = await prisma.user.findUnique({
-                where: { id: params.userId },
-            })
+  // This controller only lets in requests from users
+  // with role == 'admin'
+  .use(authPlugin)
+  .get(
+    "/content/:userId",
+    async ({ params, set }) => {
+      log.out(`GET request at /content/${params.userId}`, "admin-controller");
 
-            if (!targetUser) {
-                set.status = 400
-                return { error: 'INVALID_ID' }
-            }
+      log.out(`Querying for user ${params.userId}`, "admin-controller");
+      const targetUser = await prisma.user.findUnique({
+        where: { id: params.userId },
+      });
 
-            const rows = await prisma.post.findMany({
-                where: { userID: params.userId },
-                include: {
-                    user: { include: { settings: true } },
-                    _count: { select: { upvotes: true, postReplies: true } },
-                },
-                orderBy: { time: 'desc' },
-            })
+      if (!targetUser) {
+        set.status = 400;
+        log.err(400, `Invalid user ID: ${params.userId}`, "admin-controller");
+        return { error: "INVALID_ID" };
+      }
 
-            const toItem = (post: (typeof rows)[number]) => ({
-                id: post.CUID,
-                content: post.content,
-                author: post.user.settings?.anon ? 'Anonymous' : post.user.name,
-                time: post.time.toISOString(),
-                upvotes: post._count.upvotes,
-                replyCount: post._count.postReplies,
-            })
+      log.success(`Found user ${params.userId}`, "admin-controller");
 
-            const rootPosts = rows.filter((p) => p.replyingToID == null)
-            const replyPosts = rows.filter((p) => p.replyingToID != null)
-
-            return {
-                posts: rootPosts.map(toItem),
-                comments: replyPosts.map(toItem),
-            }
+      log.out(`Querying posts for user ${params.userId}`, "admin-controller");
+      const rows = await prisma.post.findMany({
+        where: { userID: params.userId },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
         },
-        {
-            auth: 'admin',
-            response: contentResponse,
-            detail: {
-                description: 'Return the list of posts and comments associated with the specified user. This is an admin-only endpoint.',
-                tags: ['Content']
-            }
-        },
-    )
-    .put(
-        '/user/:userId',
-        async ({ params, body, set }) => {
-            console.log(`Executed PUT /user/${params.userId}`)
-            const NUMBER_MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000
-            try {
-                const targetUser = await prisma.user.findUnique({
-                    where: { id: params.userId },
-                })
+        orderBy: { time: "desc" },
+      });
 
-                if (!targetUser) {
-                    set.status = 404
-                    return { error: 'INVALID_USER' }
-                }
+      log.success(
+        `Found ${rows.length} posts for user ${params.userId}`,
+        "admin-controller",
+      );
 
-                let banExpires: Date | null = null
-                if (body.active && body.lengthOfBanInDays) {
-                    banExpires = new Date(Date.now() + body.lengthOfBanInDays * NUMBER_MILLISECONDS_IN_A_DAY)
-                }
+      const toItem = (post: (typeof rows)[number]) => ({
+        id: post.CUID,
+        content: post.content,
+        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        time: post.time.toISOString(),
+        upvotes: post._count.upvotes,
+        replyCount: post._count.postReplies,
+      });
 
-                await prisma.user.update({
-                    where: { id: params.userId },
-                    data: {
-                        banned: body.active,
-                        banExpires,
-                    },
-                })
+      const rootPosts = rows.filter((p) => p.replyingToID == null);
+      const replyPosts = rows.filter((p) => p.replyingToID != null);
 
-                return { status: 'OK' }
-            } catch (e) {
-                set.status = 400
-                return { error: 'INVALID_FIELD' }
-            }
-        },
-        {
-            auth: 'admin',
-            body: userBanBody,
-            response: userBanResponse,
-            detail: {
-                description: 'Ban/Unban the specified user. This is an admin-only endpoint.',
-                tags: ['User']
-            }
-        },
-    )
+      return {
+        posts: rootPosts.map(toItem),
+        comments: replyPosts.map(toItem),
+      };
+    },
+    {
+      auth: "admin",
+      response: contentResponse,
+      detail: {
+        description:
+          "Return the list of posts and comments associated with the specified user. This is an admin-only endpoint.",
+        tags: ["Content"],
+      },
+    },
+  )
+  .put(
+    "/user/:userId",
+    async ({ params, body, set }) => {
+      console.log(`PUT requested at /user/${params.userId}`);
+      const NUMBER_MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000;
+      try {
+        log.out(`Querying for user ${params.userId}`, "admin-controller");
+        const targetUser = await prisma.user.findUnique({
+          where: { id: params.userId },
+        });
+
+        if (!targetUser) {
+          set.status = 404;
+          log.err(404, `User not found: ${params.userId}`, "admin-controller");
+          return { error: "INVALID_USER" };
+        }
+
+        log.success(`User ${params.userId} found`, "admin-controller");
+
+        let banExpires: Date | null = null;
+        if (body.active && body.lengthOfBanInDays) {
+          banExpires = new Date(
+            Date.now() + body.lengthOfBanInDays * NUMBER_MILLISECONDS_IN_A_DAY,
+          );
+        }
+
+        log.out(`Updating user ${params.userId}`, "admin-controller");
+
+        await prisma.user.update({
+          where: { id: params.userId },
+          data: {
+            banned: body.active,
+            banExpires,
+          },
+        });
+
+        log.success(`User ${params.userId} updated`, "admin-controller");
+
+        return { status: "OK" };
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Invalid field: ${e}`, "admin-controller");
+        return { error: "INVALID_FIELD" };
+      }
+    },
+    {
+      auth: "admin",
+      body: userBanBody,
+      response: userBanResponse,
+      detail: {
+        description:
+          "Ban/Unban the specified user. This is an admin-only endpoint.",
+        tags: ["User"],
+      },
+    },
+  );

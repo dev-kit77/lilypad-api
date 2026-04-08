@@ -6,5 +6,5 @@ export const specialController = (app: Elysia) =>
     // add here other control policies when ready
     .get("/special", () => {
       log.out(`GET request at /special`, "special-controller");
-      return `<p>Welcome to /special</p>`;
+      return `Welcome to /special`;
     });

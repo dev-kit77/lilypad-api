@@ -17,8 +17,9 @@ export const userController = new Elysia()
   .get(
     "/user/gdpr-sar",
     async ({ user, set }) => {
-      console.log(`Executed GET /user/gdpr-sar`);
+      log.out(`GET request at /user/gdpr-sar`, "user-controller");
 
+      log.out(`Querying all userdata for ${user.id}`, "user-controller");
       const [dbUser, userPosts, reportsFiled, reportsAgainst] =
         await Promise.all([
           prisma.user.findUnique({
@@ -47,6 +48,7 @@ export const userController = new Elysia()
 
       if (!dbUser) {
         set.status = 404;
+        log.err(404, `Invalid user: ${user.id}`, "user-controller");
         return { error: "INVALID_USER" };
       }
 
@@ -54,6 +56,8 @@ export const userController = new Elysia()
       set.headers["Content-Type"] = "application/json; charset=utf-8";
       set.headers["Content-Disposition"] =
         `attachment; filename="lilypad-gdpr-sar-${dbUser.id}-${timestamp}.json"`;
+
+      log.success(`User data retrieved for ${user.id}`, "user-controller");
 
       return {
         generatedAt: new Date().toISOString(),
@@ -265,15 +269,20 @@ export const userController = new Elysia()
   .get(
     "/user/:userId",
     async ({ params, set }) => {
-      console.log(`Executed GET /user/${params.userId}`);
+      log.out(`GET request at /user/${params.userId}`, "user-controller");
+
+      log.out(`Querying profile for ${params.userId}`, "user-controller");
       const profile = await prisma.userProfile.findUnique({
         where: { userID: params.userId },
       });
 
       if (!profile) {
         set.status = 404;
+        log.err(404, `Invalid user: ${params.userId}`, "user-controller");
         return { error: "INVALID_USER" };
       }
+
+      log.success(`Profile found for ${params.userId}`, "user-controller");
 
       return {
         name: profile.name,
@@ -296,6 +305,7 @@ export const userController = new Elysia()
     async ({ user, params, body, set }) => {
       console.log(`Executed POST /user/${params.userId}/report`);
       try {
+        log.out(`Creating Report for ${params.userId}`, "user-controller");
         await prisma.report.create({
           data: {
             userID: user.id,
@@ -305,10 +315,12 @@ export const userController = new Elysia()
             action: body.action,
           },
         });
+        log.success(`Report filed for ${params.userId}`, "user-controller");
 
         return { status: "OK" };
       } catch (e) {
         set.status = 400;
+        log.err(400, `Invalid field: ${e}`, "user-controller");
         return { error: "INVALID_FIELD" };
       }
     },

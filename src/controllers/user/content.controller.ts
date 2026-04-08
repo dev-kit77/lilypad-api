@@ -22,7 +22,9 @@ export const contentController = new Elysia()
   .get(
     "/content",
     async ({ user }) => {
-      console.log(`Executed GET /content`);
+      log.out(`GET request at /content`, "content-controller");
+
+      log.out(`Querying posts for user ${user.id}`, "content-controller");
       const rows = await prisma.post.findMany({
         where: { userID: user.id },
         include: {
@@ -44,8 +46,9 @@ export const contentController = new Elysia()
       const rootPosts = rows.filter((p) => p.replyingToID == null);
       const replyPosts = rows.filter((p) => p.replyingToID != null);
 
-      console.log(
-        `GET /content user=${user.id}: ${rootPosts.length} post(s), ${replyPosts.length} comment(s) (replies)`,
+      log.success(
+        `Found ${rootPosts.length} posts & ${replyPosts.length} comments for user ${user.id}`,
+        "content-controller",
       );
 
       return {
