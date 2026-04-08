@@ -8,7 +8,7 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       TEST_API_BASE: http://localhost:3000
       TEST_ADMIN_PROMOTE_SECRET: lilypad-local-test-promote-only
@@ -41,6 +41,33 @@ jobs:
           echo "API did not become ready in time"
           docker compose logs
           exit 1
+
+      - name: Wait for auth write readiness
+        run: |
+          bun -e '
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const base = process.env.TEST_API_BASE ?? "http://localhost:3000";
+          let last = "no response";
+          for (let i = 1; i <= 45; i++) {
+            const email = `gha-probe-${Date.now()}-${i}@test.com`;
+            const res = await fetch(`${base}/api/auth/sign-up/email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password: "password1234", name: `probe-${i}` }),
+            }).catch(() => null);
+            if (res?.ok) {
+              console.log("Auth write path ready");
+              process.exit(0);
+            }
+            if (res) {
+              const text = await res.text();
+              last = `${res.status} ${text}`.trim();
+            }
+            await sleep(1000);
+          }
+          console.error(`Auth write readiness failed: ${last}`);
+          process.exit(1);
+          '
 
       - name: Run integration tests
         run: bun test
