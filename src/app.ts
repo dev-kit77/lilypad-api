@@ -49,13 +49,12 @@ export const app = new Elysia()
   })
   .onBeforeHandle(async ({ request, set }) => {
     // Rate limiting
-    const ip = getClientIp(request);
+    const ip = getClientIp(request, app.server);
 
     if (ip === "unknown") {
       log.warn(`Request from an unknown IP!`, "core");
     } else {
       log.out(`Request from ${ip}`, "core");
-      log.out(`Checking rate limit for ${ip}`, "core");
     }
     const result = await checkRateLimit(ip);
     const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000);

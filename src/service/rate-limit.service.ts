@@ -1,5 +1,10 @@
 import { redis } from 'bun'
 
+/** Bun HTTP server (requestIP for peer address when proxy headers are absent). */
+type RequestIpServer = {
+    requestIP?: (request: Request) => { address?: string } | null | undefined
+}
+
 // 5 requests/second equivalent using a 1-minute fixed window.
 export const RATE_LIMIT_WINDOW_MS = 60 * 1000
 export const RATE_LIMIT_MAX_REQUESTS = 300
@@ -11,7 +16,11 @@ export interface RateLimitResult {
     resetAt: number
 }
 
-export const getClientIp = (request: Request) => {
+/**
+ * Resolves client IP for rate limiting.
+ * Prefer proxy headers when present, otherwise use Bun's TCP peer
+ */
+export const getClientIp = (request: Request, server?: RequestIpServer | null) => {
     const xForwardedFor = request.headers.get('x-forwarded-for')
     if (xForwardedFor) {
         return xForwardedFor.split(',')[0]?.trim() ?? 'unknown'
@@ -25,6 +34,11 @@ export const getClientIp = (request: Request) => {
     const cfConnectingIp = request.headers.get('cf-connecting-ip')
     if (cfConnectingIp) {
         return cfConnectingIp.trim()
+    }
+
+    const peer = server?.requestIP?.(request)
+    if (peer?.address) {
+        return peer.address
     }
 
     return 'unknown'
