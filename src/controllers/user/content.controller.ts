@@ -10,6 +10,7 @@ import {
   postReportResponse,
   postUpdateBody,
   postUpdateResponse,
+  postDeleteResponse,
   postReplyBody,
   postReplyResponse,
   postRepliesResponse,
@@ -261,10 +262,14 @@ export const contentController = new Elysia()
           where: { CUID: params.postId, userID: user.id },
           data: { content: body.content, updated: new Date() },
         });
-        
+
         if (!result) {
           set.status = 403;
-          log.err(403, `User does not have privelge to modify`, "user-controller");
+          log.err(
+            403,
+            `User does not have privelge to modify`,
+            "user-controller",
+          );
           return { error: "FORBIDDEN" };
         }
         log.success(
@@ -285,6 +290,38 @@ export const contentController = new Elysia()
       response: postUpdateResponse,
       detail: {
         description: "Update a previously made Post.",
+        tags: ["Content"],
+      },
+    },
+  )
+  .delete(
+    "/content/post/:postId",
+    async ({ user, params, set }) => {
+      log.out(
+        `DELETE request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+
+      log.out(`Deleting post ${params.postId}`, "content-controller");
+
+      try {
+        await prisma.post.delete({
+          where: { CUID: params.postId, userID: user.id },
+        });
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Invalid field: ${e}`, "content-controller");
+        return { error: "INVALID_FIELD" };
+      }
+
+      log.success(`Deleted post ${params.postId}`, "content-controller");
+      return { status: "OK" };
+    },
+    {
+      auth: true,
+      response: postDeleteResponse,
+      detail: {
+        description: "Delete a Post.",
         tags: ["Content"],
       },
     },
