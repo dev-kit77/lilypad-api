@@ -5,6 +5,61 @@ import { authPlugin } from '../../../lib/auth/auth.plugin'
 
 export const userController = new Elysia()
     .use(authPlugin)
+    .get('/user/gdpr-sar', async ({ user, set }) => {
+        console.log(`Executed GET /user/gdpr-sar`)
+
+        const [dbUser, userPosts, reportsFiled, reportsAgainst] = await Promise.all([
+            prisma.user.findUnique({
+                where: { id: user.id },
+                include: {
+                    profile: true,
+                    settings: true,
+                },
+            }),
+            prisma.post.findMany({
+                where: { userID: user.id },
+                orderBy: { time: 'asc' },
+                include: {
+                    _count: { select: { upvotes: true, postReplies: true } },
+                },
+            }),
+            prisma.report.findMany({
+                where: { userID: user.id },
+                orderBy: { time: 'asc' },
+            }),
+            prisma.report.findMany({
+                where: { reportedUserID: user.id },
+                orderBy: { time: 'asc' },
+            }),
+        ])
+
+        if (!dbUser) {
+            set.status = 404
+            return { error: 'INVALID_USER' }
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        set.headers['Content-Type'] = 'application/json; charset=utf-8'
+        set.headers['Content-Disposition'] = `attachment; filename="lilypad-gdpr-sar-${dbUser.id}-${timestamp}.json"`
+
+        return {
+            generatedAt: new Date().toISOString(),
+            requestType: 'GDPR_ARTICLE_15_SAR',
+            user: dbUser,
+            posts: userPosts,
+            reportsFiled,
+            reportsAgainstUser: reportsAgainst.map(({ userID: _userID, ...report }) => ({
+                ...report,
+                reporter: 'ANONYMISED',
+            })),
+        }
+    }, {
+        auth: true,
+        detail: {
+            description: 'Export personal data for the authenticated user (GDPR SAR).',
+            tags: ['User']
+        }
+    })
     .get('/user', async ({ user, set }) => {
         console.log(`Executed GET /user`)
         const dbUser = await prisma.user.findUnique({
