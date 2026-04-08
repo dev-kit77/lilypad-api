@@ -159,4 +159,39 @@ describe("User endpoints", () => {
       expect(body.status).toBe("OK");
     });
   });
+
+  describe("DELETE /api/user (authenticated)", () => {
+    it("allows signing up again with the same email and username", async () => {
+      const seed = Date.now();
+      const deletedEmail = `delete-author-${seed}@test.com`;
+      const deletedName = `deleteauthor${seed}`;
+      const author = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
+
+      try {
+        const deleteRes = await authedFetch("/user", author.cookie, {
+          method: "DELETE",
+        });
+        expect(deleteRes.status).toBe(200);
+
+        const signInRes = await fetch(
+          `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: deletedEmail,
+              password: TEST_PASSWORD,
+            }),
+          },
+        );
+        expect(signInRes.ok).toBeFalse();
+
+        const recreated = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
+        expect(recreated.userId).toBeDefined();
+        await deleteCurrentUser(recreated.cookie);
+      } finally {
+        await deleteCurrentUser(author.cookie);
+      }
+    });
+  });
 });

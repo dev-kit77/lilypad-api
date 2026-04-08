@@ -140,16 +140,56 @@ export const userController = new Elysia()
             return { error: 'INVALID_USER' }
         }
 
-        await prisma.user.delete({
-            where: { id: user.id },
-        })
+        const anonymisedName = `deleted-user-${user.id.slice(0, 8)}`
+        const anonymisedEmail = `deleted-${user.id}@deleted.local`
+
+        await prisma.$transaction([
+            prisma.session.deleteMany({
+                where: { userId: user.id },
+            }),
+            prisma.account.deleteMany({
+                where: { userId: user.id },
+            }),
+            prisma.userProfile.upsert({
+                where: { userID: user.id },
+                update: {
+                    name: 'Deleted User',
+                    bio: '',
+                    status: '',
+                },
+                create: {
+                    userID: user.id,
+                    name: 'Deleted User',
+                    bio: '',
+                    status: '',
+                },
+            }),
+            prisma.userSettings.upsert({
+                where: { userID: user.id },
+                update: {
+                    anon: true,
+                },
+                create: {
+                    userID: user.id,
+                    anon: true,
+                },
+            }),
+            prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    name: anonymisedName,
+                    email: anonymisedEmail,
+                    image: null,
+                },
+            }),
+        ])
 
         return { status: 'OK' }
     }, {
         auth: true,
         response: userDeleteResponse,
         detail: {
-            description: 'Delete the current user’s profile and all data associated with it.',
+            description: 'Delete the current user account by anonymising identity while preserving authored content.',
             tags: ['User']
         }
     })
