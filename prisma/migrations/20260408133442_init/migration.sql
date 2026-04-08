@@ -1,3 +1,4 @@
+-- CreateExtention
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- CreateTable
@@ -100,9 +101,6 @@ CREATE TABLE "location" (
 
     CONSTRAINT "location_pkey" PRIMARY KEY ("CUID")
 );
-
--- CreateIndex (GIST spatial index for ST_DWithin queries)
-CREATE INDEX "location_geog_idx" ON "location" USING GIST ("geog");
 
 -- CreateTable
 CREATE TABLE "report" (
