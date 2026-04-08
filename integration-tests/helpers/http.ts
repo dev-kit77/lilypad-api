@@ -16,57 +16,21 @@ export interface AuthSession {
   userId: string;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit,
-  label: string,
-): Promise<Response> {
-  let lastError = "";
-
-  for (let attempt = 1; attempt <= 8; attempt++) {
-    try {
-      const res = await fetch(url, init);
-      if (res.ok) {
-        return res;
-      }
-
-      const text = await res.text();
-      lastError = `${res.status}: ${text}`;
-
-      // Retry transient auth/backend failures seen in CI startup windows.
-      if (res.status >= 500 || res.status === 429) {
-        await sleep(Math.min(250 * attempt, 2000));
-        continue;
-      }
-
-      throw new Error(`${label} failed (${res.status}): ${text}`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      lastError = msg;
-      if (attempt === 8) break;
-      await sleep(Math.min(250 * attempt, 2000));
-    }
-  }
-
-  throw new Error(`${label} failed after retries: ${lastError}`);
-}
-
 export async function signUp(
   email: string,
   password: string,
   name: string,
 ): Promise<AuthSession> {
-  const res = await fetchWithRetry(
-    apiUrl("/auth/sign-up/email"),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
-    },
-    "Sign-up",
-  );
+  const res = await fetch(apiUrl("/auth/sign-up/email"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, name }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Sign-up failed (${res.status}): ${text}`);
+  }
 
   const cookie = res.headers.get("set-cookie") ?? "";
   const body = (await res.json()) as { user: { id: string } };
@@ -77,15 +41,16 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  const res = await fetchWithRetry(
-    apiUrl("/auth/sign-in/email"),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    },
-    "Sign-in",
-  );
+  const res = await fetch(apiUrl("/auth/sign-in/email"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Sign-in failed (${res.status}): ${text}`);
+  }
 
   const cookie = res.headers.get("set-cookie") ?? "";
   const body = (await res.json()) as { user: { id: string } };
