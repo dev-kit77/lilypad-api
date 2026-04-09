@@ -1,13 +1,31 @@
-import { t } from 'elysia'
+import { t } from "elysia";
 
 export const userBanBody = t.Object({
-    active: t.Boolean(),
-    lengthOfBanInDays: t.Optional(t.Integer({ minimum: 1 })),
-})
+  active: t.Boolean(),
+  lengthOfBanInDays: t.Optional(t.Integer({ minimum: 1 })),
+});
 
 export const userBanResponse = {
-    200: t.Object({ status: t.String() }),
-    400: t.Object({ error: t.String() }),
-    403: t.Object({ error: t.String() }),
-    404: t.Object({ error: t.String() }),
-}
+  200: t.Object({ status: t.String() }),
+  400: t.Object({ error: t.String() }),
+  403: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+};
+
+export const reportItem = t.Object({
+  id: t.String(),
+  userID: t.String(),
+  reason: t.String(),
+  content: t.String(),
+  time: t.Date(),
+  resolved: t.Optional(t.Boolean()),
+  action: t.Optional(t.String()),
+});
+
+export const getReportResponse = {
+  200: t.Object({
+    reports: t.Array(reportItem),
+  }),
+  400: t.Object({ error: t.String() }),
+  403: t.Object({ error: t.String() }),
+};
