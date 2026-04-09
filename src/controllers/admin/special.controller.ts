@@ -106,7 +106,7 @@ export const specialController = (app: Elysia) =>
         }
       },
       {
-        auth: true,
+        auth: "admin",
         response: reportResponse,
         detail: {
           description: "Get a report by its CUID.",
