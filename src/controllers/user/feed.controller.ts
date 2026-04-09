@@ -5,15 +5,17 @@ import {
   spatialContentGetResponse,
   feedSpatialQuery,
 } from "../../models/controllers/content.models";
+import { log } from "../../../lib/log";
 
 export const contentController = new Elysia().use(authPlugin).get(
   "/feed-spatial",
   async ({ query }) => {
-    console.log(`Executed GET /feed-spatial`);
+    log.out(`GET requested at /feed-spatial`, "feed-controller");
 
     const DISTANCE = 1000;
 
     const { lat, lon } = query;
+    log.out(`Querying geolocation lat: ${lat}, lon: ${lon}`, "feed-controller");
 
     // Spatial lookup, returns CUID and distance for each nearby post
     const nearby = await prisma.$queryRaw<
@@ -27,8 +29,10 @@ export const contentController = new Elysia().use(authPlugin).get(
             AND ST_DWithin(l.geog, ST_MakePoint(${lon}, ${lat})::geography, ${DISTANCE})
         `;
 
+    log.success(`Found ${nearby.length} nearby points`, "feed-controller");
     const distanceMap = new Map(nearby.map((r) => [r.CUID, r.distance_m]));
 
+    log.out(`Quering for posts at nearby points`, "feed-controller");
     const posts = await prisma.post.findMany({
       where: {
         CUID: { in: nearby.map((r) => r.CUID) },
@@ -38,6 +42,8 @@ export const contentController = new Elysia().use(authPlugin).get(
         _count: { select: { upvotes: true, postReplies: true } },
       },
     });
+
+    log.success(`Found ${posts.length} nearby posts`, "feed-controller");
 
     return {
       posts: posts
@@ -58,8 +64,8 @@ export const contentController = new Elysia().use(authPlugin).get(
     query: feedSpatialQuery,
     response: spatialContentGetResponse,
     detail: {
-        description: 'Return a list of posts filtered by locality.',
-        tags: ['Feed']
-    }
+      description: "Return a list of posts filtered by locality.",
+      tags: ["Feed"],
+    },
   },
 );

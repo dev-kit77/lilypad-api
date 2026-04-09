@@ -19,6 +19,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-lilypad}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lilypad}
       POSTGRES_DB: ${POSTGRES_DB:-lilypad}
+      PNAME: SERVER
+      LOGFILE: lilypad.log
       # Required in production (NODE_ENV=production): non-default secret and public API URL
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-docker-secret-replace-in-production-min-32-chars}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}

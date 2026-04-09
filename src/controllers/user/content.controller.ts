@@ -10,6 +10,7 @@ import {
   postReplyResponse,
   postRepliesResponse,
 } from "../../models/controllers/content.models";
+import { log } from "../../../lib/log";
 
 /**
  * User content controller.
@@ -21,7 +22,9 @@ export const contentController = new Elysia()
   .get(
     "/content",
     async ({ user }) => {
-      console.log(`Executed GET /content`);
+      log.out(`GET request at /content`, "content-controller");
+
+      log.out(`Querying posts for user ${user.id}`, "content-controller");
       const rows = await prisma.post.findMany({
         where: { userID: user.id },
         include: {
@@ -43,8 +46,9 @@ export const contentController = new Elysia()
       const rootPosts = rows.filter((p) => p.replyingToID == null);
       const replyPosts = rows.filter((p) => p.replyingToID != null);
 
-      console.log(
-        `GET /content user=${user.id}: ${rootPosts.length} post(s), ${replyPosts.length} comment(s) (replies)`,
+      log.success(
+        `Found ${rootPosts.length} posts & ${replyPosts.length} comments for user ${user.id}`,
+        "content-controller",
       );
 
       return {
@@ -56,9 +60,10 @@ export const contentController = new Elysia()
       auth: true,
       response: contentResponse,
       detail: {
-        description: 'Returns the list of posts and comments associated with the current user.',
-        tags: ['Content']
-      }
+        description:
+          "Returns the list of posts and comments associated with the current user.",
+        tags: ["Content"],
+      },
     },
   )
   /**
@@ -68,11 +73,15 @@ export const contentController = new Elysia()
   .post(
     "/content/post",
     async ({ user, body, set }) => {
-      console.log(`Executed POST /content/post`);
+      log.out(`POST request at /content/post`, "content-controller");
       try {
         const { lat, lon } = body.locality;
 
         // geog type is Unsupported in Prisma so all location reads/writes use raw SQL
+        log.out(
+          `Querying geolocation: lat=${lat}, lon=${lon}`,
+          "content-controller",
+        );
         const existing = await prisma.$queryRaw<{ CUID: string }[]>`
                 SELECT "CUID" FROM "location"
                 WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
@@ -81,15 +90,28 @@ export const contentController = new Elysia()
 
         let locationCUID: string;
         if (existing.length > 0 && existing[0]) {
+          log.success(
+            `Found existing location: CUID=${existing[0].CUID}`,
+            "content-controller",
+          );
           locationCUID = existing[0].CUID;
         } else {
           locationCUID = createId();
+          log.out(
+            `No existing location found, creating new CUID=${locationCUID}`,
+            "content-controller",
+          );
           await prisma.$executeRaw`
                     INSERT INTO "location" ("CUID", "geog")
                     VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography)
                 `;
+          log.success(
+            `Created new location: CUID=${locationCUID}`,
+            "content-controller",
+          );
         }
-        console.log(`creating post by user ${user.id} with content ${body.content}`)
+
+        log.out(`Creating post...`, "content-controller");
         await prisma.post.create({
           data: {
             userID: user.id,
@@ -97,11 +119,11 @@ export const contentController = new Elysia()
             locationID: locationCUID,
           },
         });
-
+        log.success(`Created post!`, "content-controller");
         return { status: "OK" };
       } catch (e) {
         set.status = 400;
-        console.log(`${e}`);
+        log.err(400, `Failed to create post: ${e}`, "content-controller");
         return { error: "INVALID_FIELD" };
       }
     },
@@ -110,9 +132,9 @@ export const contentController = new Elysia()
       body: postCreateBody,
       response: postCreateResponse,
       detail: {
-        description: 'Create a new post.',
-        tags: ['Content']
-      }
+        description: "Create a new post.",
+        tags: ["Content"],
+      },
     },
   )
   /**
@@ -122,17 +144,34 @@ export const contentController = new Elysia()
   .post(
     "/content/post/:postId/reply",
     async ({ user, params, body, set }) => {
-      console.log(`Executed POST /content/post/${params.postId}/reply`);
+      log.out(
+        `POST request at /content/post/${params.postId}/reply`,
+        "content-controller",
+      );
       try {
+        log.out(
+          `Finding parent post: CUID=${params.postId}`,
+          "content-controller",
+        );
         const parent = await prisma.post.findUnique({
           where: { CUID: params.postId },
         });
 
         if (!parent) {
+          log.err(
+            400,
+            `Parent post not found: CUID=${params.postId}`,
+            "content-controller",
+          );
           set.status = 400;
           return { error: "INVALID_FIELD" };
         }
+        log.success(
+          `Parent post found: CUID=${params.postId}`,
+          "content-controller",
+        );
 
+        log.out(`Creating reply post...`, "content-controller");
         await prisma.post.create({
           data: {
             userID: user.id,
@@ -142,9 +181,11 @@ export const contentController = new Elysia()
           },
         });
 
+        log.success(`Reply post created!`, "content-controller");
         return { status: "OK" };
       } catch (e) {
         set.status = 400;
+        log.err(400, `Failed to create reply post: ${e}`, "content-controller");
         return { error: "INVALID_FIELD" };
       }
     },
@@ -153,9 +194,9 @@ export const contentController = new Elysia()
       body: postReplyBody,
       response: postReplyResponse,
       detail: {
-        description: 'Create a new reply to a post object.',
-        tags: ['Content']
-      }
+        description: "Create a new reply to a post object.",
+        tags: ["Content"],
+      },
     },
   )
   /**
@@ -165,16 +206,25 @@ export const contentController = new Elysia()
   .get(
     "/content/post/:postId/reply",
     async ({ params, set }) => {
-      console.log(`Executed GET /content/post/${params.postId}/reply`);
+      log.out(
+        `GET request at /content/post/${params.postId}/reply`,
+        "content-controller",
+      );
 
+      log.out(
+        `Fetching replies for post ${params.postId}`,
+        "content-controller",
+      );
       const parent = await prisma.post.findUnique({
         where: { CUID: params.postId },
       });
 
       if (!parent) {
         set.status = 404;
+        log.err(404, `Invalid post ID: ${params.postId}`, "content-controller");
         return { error: "INVALID_ID" };
       }
+      log.success(`Found post ${params.postId}`, "content-controller");
 
       const replies = await prisma.post.findMany({
         where: { replyingToID: params.postId },
@@ -184,6 +234,10 @@ export const contentController = new Elysia()
         },
         orderBy: { time: "asc" },
       });
+      log.success(
+        `Fetched ${replies.length} replies for post ${params.postId}`,
+        "content-controller",
+      );
 
       return replies.map((post) => ({
         id: post.CUID,
@@ -198,8 +252,8 @@ export const contentController = new Elysia()
       auth: true,
       response: postRepliesResponse,
       detail: {
-        description: 'Return all replies to a post object.',
-        tags: ['Content']
-      }
+        description: "Return all replies to a post object.",
+        tags: ["Content"],
+      },
     },
   );

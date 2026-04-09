@@ -3,6 +3,8 @@ import { admin } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "../prisma";
 import { createId } from '@paralleldrive/cuid2'
+import { createAuthMiddleware } from "better-auth/api";
+import { log } from "../log";
 
 export const auth = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
@@ -10,11 +12,14 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql"
     }),
+    rateLimit: {
+        enabled: false
+    },
     plugins: [
         admin(),
     ],
-    emailAndPassword: { 
-        enabled: true, 
+    emailAndPassword: {
+        enabled: true,
     },
     trustedOrigins: [
         'http://localhost:8080',
@@ -25,6 +30,25 @@ export const auth = betterAuth({
         database: {
             generateId: () => createId()
         }
+    },
+    hooks: {
+        after: createAuthMiddleware(async (ctx) => {
+            const path = ctx.path;
+
+            if (path === "/sign-up/email") {
+                log.out(`POST request at /api/auth/sign-up/email`, "auth-controller");
+                return;
+            }
+
+            if (path === "/sign-in/email") {
+                log.out(`POST request at /api/auth/sign-in/email`, "auth-controller");
+                return;
+            }
+
+            if (path === "/sign-out") {
+                log.out(`POST request at /api/auth/sign-out`, "auth-controller");
+            }
+        }),
     },
     databaseHooks: {
         user: {
