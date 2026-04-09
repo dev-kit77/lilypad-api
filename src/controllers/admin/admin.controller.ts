@@ -6,6 +6,7 @@ import {
   userBanResponse,
 } from "../../models/controllers/admin.models";
 import { contentResponse } from "../../models/controllers/content.models";
+import { ERROR_CODES } from "../../models/controllers/error-codes.models";
 import { log } from "../../../lib/log";
 
 export const adminController = new Elysia()
@@ -28,7 +29,7 @@ export const adminController = new Elysia()
       if (!targetUser) {
         set.status = 400;
         log.err(400, `Invalid user ID: ${params.userId}`, "admin-controller");
-        return { error: "INVALID_ID" };
+        return { error: ERROR_CODES.INVALID_USER };
       }
 
       log.success(`Found user ${params.userId}`, "admin-controller");
@@ -92,7 +93,7 @@ export const adminController = new Elysia()
         if (!targetUser) {
           set.status = 404;
           log.err(404, `User not found: ${params.userId}`, "admin-controller");
-          return { error: "INVALID_USER" };
+          return { error: ERROR_CODES.INVALID_USER };
         }
 
         log.success(`User ${params.userId} found`, "admin-controller");
@@ -120,7 +121,7 @@ export const adminController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "admin-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {

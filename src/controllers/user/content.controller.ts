@@ -16,6 +16,7 @@ import {
   postRepliesResponse,
   postResponse,
 } from "../../models/controllers/content.models";
+import { ERROR_CODES } from "../../models/controllers/error-codes.models";
 import { log } from "../../../lib/log";
 
 /**
@@ -133,7 +134,7 @@ export const contentController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Failed to create post: ${e}`, "content-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
@@ -265,7 +266,7 @@ export const contentController = new Elysia()
             "content-controller",
           );
           set.status = 400;
-          return { error: "INVALID_FIELD" };
+          return { error: ERROR_CODES.INVALID_ID };
         }
         log.success(
           `Parent post found: CUID=${params.postId}`,
@@ -287,7 +288,7 @@ export const contentController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Failed to create reply post: ${e}`, "content-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
@@ -473,7 +474,7 @@ export const contentController = new Elysia()
       if (!parent) {
         set.status = 404;
         log.err(404, `Invalid post ID: ${params.postId}`, "content-controller");
-        return { error: "INVALID_ID" };
+        return { error: ERROR_CODES.INVALID_ID };
       }
       log.success(`Found post ${params.postId}`, "content-controller");
 
