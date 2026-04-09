@@ -8,6 +8,7 @@ import {
   updateReportResponse,
 } from "../../models/controllers/admin.models";
 import { log } from "../../../lib/log";
+import { ERROR_CODES } from "../../models/controllers/error-codes.models";
 
 export const specialController = (app: Elysia) =>
   app
@@ -68,7 +69,7 @@ export const specialController = (app: Elysia) =>
               `Report not found: ${params.reportId}`,
               "content-controller",
             );
-            return { error: "NOT_FOUND" };
+            return { error: ERROR_CODES.INVALID_ID };
           }
 
           return {
@@ -91,7 +92,7 @@ export const specialController = (app: Elysia) =>
         } catch (e) {
           set.status = 400;
           log.err(400, `Failed to get report: ${e}`, "content-controller");
-          return { error: "INVALID_FIELD" };
+          return { error: ERROR_CODES.INVALID_FIELD };
         }
       },
       {
@@ -131,7 +132,7 @@ export const specialController = (app: Elysia) =>
               `Report ${params.reportId} not found`,
               "special-controller",
             );
-            return { error: "FORBIDDEN" };
+            return { error: ERROR_CODES.INVALID_ID };
           }
           log.success(
             `Updating report ${params.reportId} to resolved ${body.resolved} with action ${body.actionTaken}`,
@@ -142,7 +143,7 @@ export const specialController = (app: Elysia) =>
         } catch (e) {
           set.status = 400;
           log.err(400, `Invalid field: ${e}`, "special-controller");
-          return { error: "INVALID_FIELD" };
+          return { error: ERROR_CODES.INVALID_FIELD };
         }
       },
       {
