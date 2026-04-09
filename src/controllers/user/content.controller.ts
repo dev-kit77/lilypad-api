@@ -44,7 +44,7 @@ export const contentController = new Elysia()
         id: post.CUID,
         content: post.content,
         author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-        time: post.time.toISOString(),
+        time: post.time,
         upvotes: post._count.upvotes,
         replyCount: post._count.postReplies,
       });
@@ -175,7 +175,8 @@ export const contentController = new Elysia()
             id: post.CUID,
             content: post.content,
             author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-            time: post.time.toISOString(),
+            time: post.time,
+            ...(post.updated ? { updated: post.updated } : {}),
             upvotes: post._count.upvotes,
             replyCount: post._count.postReplies,
           },
@@ -423,7 +424,8 @@ export const contentController = new Elysia()
         id: post.CUID,
         content: post.content,
         author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-        time: post.time.toISOString(),
+        time: post.time,
+        ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
         replyCount: post._count.postReplies,
       }));

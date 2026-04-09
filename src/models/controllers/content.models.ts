@@ -4,7 +4,8 @@ export const postItem = t.Object({
   id: t.String(),
   content: t.String(),
   author: t.String(),
-  time: t.String(),
+  time: t.Date(),
+  updated: t.Optional(t.Date()),
   upvotes: t.Number(),
   replyCount: t.Number(),
 });
