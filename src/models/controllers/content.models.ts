@@ -60,8 +60,8 @@ export const postCreateResponse = {
 };
 
 export const postReportBody = t.Object({
-  reason: t.String(),
-  content: t.String(),
+  reason: t.String({ minLength: 1 }),
+  content: t.String({ minLength: 1 }),
 });
 
 export const postReportResponse = {
