@@ -94,12 +94,12 @@ describe("Admin endpoints", () => {
       expect(Array.isArray(body.posts)).toBe(true);
     });
 
-    it("returns 400 for a non-existent userId", async () => {
+    it("returns 404 for a non-existent userId", async () => {
       const res = await authedFetch(
         "/content/user/non-existent-id",
         adminSession.cookie,
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(404);
     });
   });
 

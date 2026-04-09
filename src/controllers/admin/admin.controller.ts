@@ -27,8 +27,8 @@ export const adminController = new Elysia()
       });
 
       if (!targetUser) {
-        set.status = 400;
-        log.err(400, `Invalid user ID: ${params.userId}`, "admin-controller");
+        set.status = 404;
+        log.err(404, `Invalid user ID: ${params.userId}`, "admin-controller");
         return { error: ERROR_CODES.INVALID_USER };
       }
 
