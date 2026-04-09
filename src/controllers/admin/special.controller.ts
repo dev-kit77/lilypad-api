@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import { prisma } from "../../../lib/prisma";
+import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
   reportResponse,
   getReportsResponse,
@@ -10,7 +11,7 @@ import { log } from "../../../lib/log";
 
 export const specialController = (app: Elysia) =>
   app
-    // add here other control policies when ready
+    .use(authPlugin)
     .get(
       "/special",
       async () => {
@@ -27,7 +28,9 @@ export const specialController = (app: Elysia) =>
           reason: report.reason,
           content: report.content,
           time: report.time,
-          reportedPostID: report.reportedPostID,
+          resolved: report.resolved,
+          ...(report.action ? { action: report.action } : {}),
+          reportedPostID: report.reportedPostID!,
         });
 
         const toUserReport = (report: (typeof reports)[number]) => ({
@@ -36,12 +39,16 @@ export const specialController = (app: Elysia) =>
           reason: report.reason,
           content: report.content,
           time: report.time,
-          reportedUserID: report.reportedUserID,
+          resolved: report.resolved,
+          ...(report.action ? { action: report.action } : {}),
+          reportedUserID: report.reportedUserID!,
         });
 
         return {
           reports: reports.map((report) =>
-            report.reportedPostID ? toPostReport(report) : toUserReport(report),
+            !report.reportedPostID
+              ? toUserReport(report)
+              : toPostReport(report),
           ),
         };
       },
@@ -83,8 +90,8 @@ export const specialController = (app: Elysia) =>
             content: report.content,
             time: report.time,
             resolved: report.resolved,
-            action: report.action,
-            reportedPostID: report.reportedPostID,
+            ...(report.action ? { action: report.action } : {}),
+            reportedPostID: report.reportedPostID!,
           });
 
           const toUserReport = () => ({
@@ -94,12 +101,12 @@ export const specialController = (app: Elysia) =>
             content: report.content,
             time: report.time,
             resolved: report.resolved,
-            action: report.action,
-            reportedUserID: report.reportedUserID,
+            ...(report.action ? { action: report.action } : {}),
+            reportedUserID: report.reportedUserID!,
           });
 
           return {
-            report: report.reportedPostID ? toPostReport() : toUserReport(),
+            report: !report.reportedPostID ? toUserReport() : toPostReport(),
           };
         } catch (e) {
           set.status = 400;
