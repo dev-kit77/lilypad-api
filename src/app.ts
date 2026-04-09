@@ -6,6 +6,7 @@ import swagger from "@elysiajs/swagger";
 import { adminController } from "./controllers/admin/admin.controller";
 import { testController } from "./controllers/test/test.controller";
 import { pingController } from "./controllers/user/ping.controller";
+import { specialController } from "./controllers/admin/special.controller";
 import { auth } from "../lib/auth/auth";
 import { cors } from "@elysiajs/cors";
 import {
@@ -78,6 +79,7 @@ export const app = new Elysia()
       .use(pingController)
       .use(userController)
       .use(feedController)
+      .use(specialController)
       .use(contentController)
       .use(adminController)
       .use(testController),
