@@ -14,6 +14,7 @@ import {
   postReplyBody,
   postReplyResponse,
   postRepliesResponse,
+  postResponse,
 } from "../../models/controllers/content.models";
 import { log } from "../../../lib/log";
 
@@ -138,6 +139,58 @@ export const contentController = new Elysia()
       response: postCreateResponse,
       detail: {
         description: "Create a new post.",
+        tags: ["Content"],
+      },
+    },
+  )
+  .get(
+    "/content/post/:postId",
+    async ({ params, set }) => {
+      log.out(
+        `POST request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+
+      try {
+        const post = await prisma.post.findUnique({
+          where: { CUID: params.postId },
+          include: {
+            user: { include: { settings: true } },
+            _count: { select: { upvotes: true, postReplies: true } },
+          },
+        });
+
+        if (!post) {
+          set.status = 404;
+          log.err(
+            404,
+            `Post not found: ${params.postId}`,
+            "content-controller",
+          );
+          return { error: "NOT_FOUND" };
+        }
+
+        return {
+          post: {
+            id: post.CUID,
+            content: post.content,
+            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            time: post.time.toISOString(),
+            upvotes: post._count.upvotes,
+            replyCount: post._count.postReplies,
+          },
+        };
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Failed to get post: ${e}`, "content-controller");
+        return { error: "INVALID_FIELD" };
+      }
+    },
+    {
+      auth: true,
+      response: postResponse,
+      detail: {
+        description: "Get a post by its CUID.",
         tags: ["Content"],
       },
     },

@@ -9,6 +9,12 @@ export const postItem = t.Object({
   replyCount: t.Number(),
 });
 
+export const postResponse = {
+  200: t.Object({ post: postItem }),
+  400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+};
+
 export const contentResponse = {
   200: t.Object({
     posts: t.Array(postItem),
