@@ -171,7 +171,7 @@ export const contentController = new Elysia()
             `Post not found: ${params.postId}`,
             "content-controller",
           );
-          return { error: "NOT_FOUND" };
+          return { error: ERROR_CODES.INVALID_ID };
         }
 
         return {
@@ -189,7 +189,7 @@ export const contentController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Failed to get post: ${e}`, "content-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
@@ -225,7 +225,7 @@ export const contentController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
@@ -333,7 +333,7 @@ export const contentController = new Elysia()
             `Post not found: ${params.postId}`,
             "content-controller",
           );
-          return { error: "NOT_FOUND" };
+          return { error: ERROR_CODES.INVALID_ID };
         }
         if (existing.userID !== user.id) {
           set.status = 403;
@@ -342,7 +342,7 @@ export const contentController = new Elysia()
             `User ${user.id} does not have privilege to delete post ${params.postId}`,
             "content-controller",
           );
-          return { error: "FORBIDDEN" };
+          return { error: ERROR_CODES.INVALID_USER };
         }
 
         log.success(
@@ -367,7 +367,7 @@ export const contentController = new Elysia()
             `User does not have privelge to modify`,
             "user-controller",
           );
-          return { error: "FORBIDDEN" };
+          return { error: ERROR_CODES.INVALID_USER };
         }
         log.success(
           `Post ${params.postId} content updated to ${body.content}`,
@@ -378,7 +378,7 @@ export const contentController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
@@ -410,7 +410,7 @@ export const contentController = new Elysia()
       if (!existing) {
         set.status = 404;
         log.err(404, `Post not found: ${params.postId}`, "content-controller");
-        return { error: "NOT_FOUND" };
+        return { error: ERROR_CODES.INVALID_ID };
       }
       if (existing.userID !== user.id) {
         set.status = 403;
@@ -419,7 +419,7 @@ export const contentController = new Elysia()
           `User ${user.id} does not have privilege to delete post ${params.postId}`,
           "content-controller",
         );
-        return { error: "FORBIDDEN" };
+        return { error: ERROR_CODES.INVALID_USER };
       }
 
       log.success(
@@ -436,7 +436,7 @@ export const contentController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "content-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
 
       log.success(`Deleted post ${params.postId}`, "content-controller");
