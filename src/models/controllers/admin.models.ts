@@ -24,31 +24,9 @@ export const reportItem = t.Object({
   reportedUserID: t.Optional(t.String()),
 });
 
-export const userReportItem = t.Object({
-  id: t.String(),
-  userID: t.String(),
-  reason: t.String(),
-  content: t.String(),
-  time: t.Date(),
-  resolved: t.Boolean(),
-  action: t.Optional(t.String()),
-  reportedUserID: t.String(),
-});
-
-export const postReportItem = t.Object({
-  id: t.String(),
-  userID: t.String(),
-  reason: t.String(),
-  content: t.String(),
-  time: t.Date(),
-  resolved: t.Boolean(),
-  action: t.Optional(t.String()),
-  reportedPostID: t.String(),
-});
-
 export const reportResponse = {
   200: t.Object({
-    report: t.Union([userReportItem, postReportItem]),
+    report: reportItem,
   }),
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
@@ -57,7 +35,7 @@ export const reportResponse = {
 
 export const getReportsResponse = {
   200: t.Object({
-    reports: t.Array(t.Union([userReportItem, postReportItem])),
+    reports: t.Array(reportItem),
   }),
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),

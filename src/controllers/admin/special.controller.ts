@@ -22,34 +22,22 @@ export const specialController = (app: Elysia) =>
           orderBy: { time: "asc" },
         });
 
-        const toPostReport = (report: (typeof reports)[number]) => ({
-          id: report.CUID,
-          userID: report.userID,
-          reason: report.reason,
-          content: report.content,
-          time: report.time,
-          resolved: report.resolved,
-          ...(report.action ? { action: report.action } : {}),
-          reportedPostID: report.reportedPostID!,
-        });
-
-        const toUserReport = (report: (typeof reports)[number]) => ({
-          id: report.CUID,
-          userID: report.userID,
-          reason: report.reason,
-          content: report.content,
-          time: report.time,
-          resolved: report.resolved,
-          ...(report.action ? { action: report.action } : {}),
-          reportedUserID: report.reportedUserID!,
-        });
-
         return {
-          reports: reports.map((report) =>
-            !report.reportedPostID
-              ? toUserReport(report)
-              : toPostReport(report),
-          ),
+          reports: reports.map((report) => ({
+            id: report.CUID,
+            userID: report.userID,
+            reason: report.reason,
+            content: report.content,
+            time: report.time,
+            resolved: report.resolved,
+            ...(report.action ? { action: report.action } : {}),
+            ...(report.reportedPostID
+              ? { reportedPostID: report.reportedPostID }
+              : {}),
+            ...(report.reportedUserID
+              ? { reportedUserID: report.reportedUserID }
+              : {}),
+          })),
         };
       },
       {
@@ -83,30 +71,22 @@ export const specialController = (app: Elysia) =>
             return { error: "NOT_FOUND" };
           }
 
-          const toPostReport = () => ({
-            id: report.CUID,
-            userID: report.userID,
-            reason: report.reason,
-            content: report.content,
-            time: report.time,
-            resolved: report.resolved,
-            ...(report.action ? { action: report.action } : {}),
-            reportedPostID: report.reportedPostID!,
-          });
-
-          const toUserReport = () => ({
-            id: report.CUID,
-            userID: report.userID,
-            reason: report.reason,
-            content: report.content,
-            time: report.time,
-            resolved: report.resolved,
-            ...(report.action ? { action: report.action } : {}),
-            reportedUserID: report.reportedUserID!,
-          });
-
           return {
-            report: !report.reportedPostID ? toUserReport() : toPostReport(),
+            report: {
+              id: report.CUID,
+              userID: report.userID,
+              reason: report.reason,
+              content: report.content,
+              time: report.time,
+              resolved: report.resolved,
+              ...(report.action ? { action: report.action } : {}),
+              ...(report.reportedPostID
+                ? { reportedPostID: report.reportedPostID }
+                : {}),
+              ...(report.reportedUserID
+                ? { reportedUserID: report.reportedUserID }
+                : {}),
+            },
           };
         } catch (e) {
           set.status = 400;
