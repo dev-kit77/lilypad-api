@@ -18,11 +18,18 @@ export const reportItem = t.Object({
   reason: t.String(),
   content: t.String(),
   time: t.Date(),
-  resolved: t.Optional(t.Boolean()),
-  action: t.Optional(t.String()),
 });
 
-export const getReportResponse = {
+export const reportResponse = {
+  200: t.Object({
+    report: reportItem,
+  }),
+  400: t.Object({ error: t.String() }),
+  403: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+};
+
+export const getReportsResponse = {
   200: t.Object({
     reports: t.Array(reportItem),
   }),

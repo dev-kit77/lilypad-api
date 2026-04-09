@@ -1,6 +1,9 @@
 import { Elysia, t } from "elysia";
 import { prisma } from "../../../lib/prisma";
-import { getReportResponse } from "../../models/controllers/admin.models";
+import {
+  getReportsResponse,
+  reportResponse,
+} from "../../models/controllers/admin.models";
 import { log } from "../../../lib/log";
 
 export const specialController = (app: Elysia) =>
@@ -42,17 +45,72 @@ export const specialController = (app: Elysia) =>
       },
       {
         auth: "admin",
-        response: getReportResponse,
+        response: getReportsResponse,
         detail: {
           description: "Gets a list of reports.",
           tags: ["User"],
         },
       },
     )
-    .get("/special/:reportId", ({ params }) => {
-      log.out(
-        `GET request at /special/${params.reportId}`,
-        "special-controller",
-      );
-      return `Welcome to /special/${params.reportId}`;
-    });
+    .get(
+      "/special/:reportId",
+      async ({ params, set }) => {
+        log.out(
+          `GET request at /special/${params.reportId}`,
+          "special-controller",
+        );
+        try {
+          const report = await prisma.report.findUnique({
+            where: { CUID: params.reportId },
+          });
+
+          if (!report) {
+            set.status = 404;
+            log.err(
+              404,
+              `Report not found: ${params.reportId}`,
+              "content-controller",
+            );
+            return { error: "NOT_FOUND" };
+          }
+
+          const toPostReport = () => ({
+            id: report.CUID,
+            userID: report.userID,
+            reason: report.reason,
+            content: report.content,
+            time: report.time,
+            resolved: report.resolved,
+            action: report.action,
+            reportedPostID: report.reportedPostID,
+          });
+
+          const toUserReport = () => ({
+            id: report.CUID,
+            userID: report.userID,
+            reason: report.reason,
+            content: report.content,
+            time: report.time,
+            resolved: report.resolved,
+            action: report.action,
+            reportedUserID: report.reportedUserID,
+          });
+
+          return {
+            report: report.reportedPostID ? toPostReport() : toUserReport(),
+          };
+        } catch (e) {
+          set.status = 400;
+          log.err(400, `Failed to get report: ${e}`, "content-controller");
+          return { error: "INVALID_FIELD" };
+        }
+      },
+      {
+        auth: true,
+        response: reportResponse,
+        detail: {
+          description: "Get a report by its CUID.",
+          tags: ["Content"],
+        },
+      },
+    );
