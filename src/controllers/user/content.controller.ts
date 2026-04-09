@@ -323,7 +323,7 @@ export const contentController = new Elysia()
         );
 
         const existing = await prisma.post.findUnique({
-          where: { CUID: params.postId, userID: user.id },
+          where: { CUID: params.postId },
         });
         if (!existing) {
           set.status = 404;
@@ -404,7 +404,7 @@ export const contentController = new Elysia()
       );
 
       const existing = await prisma.post.findUnique({
-        where: { CUID: params.postId, userID: user.id },
+        where: { CUID: params.postId },
       });
       if (!existing) {
         set.status = 404;
