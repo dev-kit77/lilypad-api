@@ -316,8 +316,46 @@ export const contentController = new Elysia()
           `Updating post ${params.postId} content to ${body.content}`,
           "content-controller",
         );
-        const result = await prisma.post.update({
+
+        log.out(
+          `Checking user ${user.id} access for post ${params.postId}`,
+          "content-controller",
+        );
+
+        const existing = await prisma.post.findUnique({
           where: { CUID: params.postId, userID: user.id },
+        });
+        if (!existing) {
+          set.status = 404;
+          log.err(
+            404,
+            `Post not found: ${params.postId}`,
+            "content-controller",
+          );
+          return { error: "NOT_FOUND" };
+        }
+        if (existing.userID !== user.id) {
+          set.status = 403;
+          log.err(
+            403,
+            `User ${user.id} does not have privilege to delete post ${params.postId}`,
+            "content-controller",
+          );
+          return { error: "FORBIDDEN" };
+        }
+
+        log.success(
+          `User ${user.id} has permission to delete post ${params.postId}`,
+          "content-controller",
+        );
+
+        log.out(
+          `Updating post ${params.postId} content to ${body.content}`,
+          "content-controller",
+        );
+
+        const result = await prisma.post.update({
+          where: { CUID: params.postId },
           data: { content: body.content, updated: new Date() },
         });
 
@@ -357,6 +395,34 @@ export const contentController = new Elysia()
     async ({ user, params, set }) => {
       log.out(
         `DELETE request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+
+      log.out(
+        `Checking user ${user.id} access for post ${params.postId}`,
+        "content-controller",
+      );
+
+      const existing = await prisma.post.findUnique({
+        where: { CUID: params.postId, userID: user.id },
+      });
+      if (!existing) {
+        set.status = 404;
+        log.err(404, `Post not found: ${params.postId}`, "content-controller");
+        return { error: "NOT_FOUND" };
+      }
+      if (existing.userID !== user.id) {
+        set.status = 403;
+        log.err(
+          403,
+          `User ${user.id} does not have privilege to delete post ${params.postId}`,
+          "content-controller",
+        );
+        return { error: "FORBIDDEN" };
+      }
+
+      log.success(
+        `User ${user.id} has permission to delete post ${params.postId}`,
         "content-controller",
       );
 
