@@ -13,9 +13,12 @@ export const adminController = new Elysia()
   // with role == 'admin'
   .use(authPlugin)
   .get(
-    "/content/:userId",
+    "/content/user/:userId",
     async ({ params, set }) => {
-      log.out(`GET request at /content/${params.userId}`, "admin-controller");
+      log.out(
+        `GET request at /content/user/${params.userId}`,
+        "admin-controller",
+      );
 
       log.out(`Querying for user ${params.userId}`, "admin-controller");
       const targetUser = await prisma.user.findUnique({
