@@ -3,10 +3,12 @@ import { t } from "elysia";
 export const postItem = t.Object({
   id: t.String(),
   content: t.String(),
+  userID: t.Optional(t.String()),
   author: t.String(),
   time: t.Date(),
   updated: t.Optional(t.Date()),
   upvotes: t.Number(),
+  replyingTo: t.Optional(t.String()),
   replyCount: t.Number(),
 });
 
@@ -28,9 +30,12 @@ export const contentResponse = {
 export const spatialPostItem = t.Object({
   id: t.String(),
   content: t.String(),
+  userID: t.Optional(t.String()),
   author: t.String(),
-  time: t.String(),
+  time: t.Date(),
+  updated: t.Optional(t.Date()),
   upvotes: t.Number(),
+  replyingTo: t.Optional(t.String()),
   replyCount: t.Number(),
   distanceKm: t.Number(),
 });
@@ -57,7 +62,6 @@ export const postCreateResponse = {
 export const postReportBody = t.Object({
   reason: t.String(),
   content: t.String(),
-  action: t.Optional(t.String()),
 });
 
 export const postReportResponse = {

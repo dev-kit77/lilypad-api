@@ -43,9 +43,12 @@ export const contentController = new Elysia()
       const toItem = (post: (typeof rows)[number]) => ({
         id: post.CUID,
         content: post.content,
+        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
         author: post.user.settings?.anon ? "Anonymous" : post.user.name,
         time: post.time,
+        ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
+        ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
         replyCount: post._count.postReplies,
       });
 
@@ -174,6 +177,7 @@ export const contentController = new Elysia()
           post: {
             id: post.CUID,
             content: post.content,
+            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
             author: post.user.settings?.anon ? "Anonymous" : post.user.name,
             time: post.time,
             ...(post.updated ? { updated: post.updated } : {}),
@@ -203,6 +207,7 @@ export const contentController = new Elysia()
         `POST request at /content/post/${params.postId}`,
         "content-controller",
       );
+
       try {
         log.out(`Creating Report for ${params.postId}`, "user-controller");
         await prisma.report.create({
@@ -211,7 +216,6 @@ export const contentController = new Elysia()
             reportedPostID: params.postId,
             reason: body.reason,
             content: body.content,
-            action: body.action,
           },
         });
         log.success(`Report filed for ${params.postId}`, "user-controller");
@@ -423,6 +427,7 @@ export const contentController = new Elysia()
       return replies.map((post) => ({
         id: post.CUID,
         content: post.content,
+        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
         author: post.user.settings?.anon ? "Anonymous" : post.user.name,
         time: post.time,
         ...(post.updated ? { updated: post.updated } : {}),

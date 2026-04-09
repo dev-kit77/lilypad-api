@@ -51,10 +51,12 @@ export const adminController = new Elysia()
       const toItem = (post: (typeof rows)[number]) => ({
         id: post.CUID,
         content: post.content,
+        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
         author: post.user.settings?.anon ? "Anonymous" : post.user.name,
         time: post.time,
         ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
+        ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
         replyCount: post._count.postReplies,
       });
 
