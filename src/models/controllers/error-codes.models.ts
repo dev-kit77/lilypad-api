@@ -1,0 +1,5 @@
+export const ERROR_CODES = {
+  INVALID_ID: "INVALID_ID",
+  INVALID_USER: "INVALID_USER",
+  INVALID_FIELD: "INVALID_FIELD",
+} as const;
