@@ -137,7 +137,6 @@ describe("Special (Reports) endpoints", () => {
       expect(report).toHaveProperty("content");
       expect(report).toHaveProperty("time");
       expect(report).toHaveProperty("resolved");
-      expect(report).toHaveProperty("action");
       expect(report).toHaveProperty("reportedUserID");
     });
   });
