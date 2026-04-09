@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
   signUp,
-  signIn,
   authedFetch,
   deleteCurrentUser,
   promoteUserToAdminForTest,
