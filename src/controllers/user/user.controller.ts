@@ -8,6 +8,7 @@ import {
   userReportBody,
   userReportResponse,
 } from "../../models/controllers/user.models";
+import { ERROR_CODES } from "../../models/controllers/error-codes.models";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import { log } from "../../../lib/log";
@@ -49,7 +50,7 @@ export const userController = new Elysia()
       if (!dbUser) {
         set.status = 404;
         log.err(404, `Invalid user: ${user.id}`, "user-controller");
-        return { error: "INVALID_USER" };
+        return { error: ERROR_CODES.INVALID_USER };
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -96,7 +97,7 @@ export const userController = new Elysia()
       if (!dbUser) {
         set.status = 404;
         log.err(404, `User ${user.id} not found`, "user-controller");
-        return { error: "INVALID_USER" };
+        return { error: ERROR_CODES.INVALID_USER };
       }
 
       log.success(`User ${user.id} profile retrieved`, "user-controller");
@@ -175,7 +176,7 @@ export const userController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field in PUT /user`, "user-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
@@ -201,7 +202,7 @@ export const userController = new Elysia()
       if (!dbUser) {
         set.status = 404;
         log.err(404, `User ${user.id} not found`, "user-controller");
-        return { error: "INVALID_USER" };
+        return { error: ERROR_CODES.INVALID_USER };
       }
       log.success(`User ${user.id} found`, "user-controller");
 
@@ -279,7 +280,7 @@ export const userController = new Elysia()
       if (!profile) {
         set.status = 404;
         log.err(404, `Invalid user: ${params.userId}`, "user-controller");
-        return { error: "INVALID_USER" };
+        return { error: ERROR_CODES.INVALID_USER };
       }
 
       log.success(`Profile found for ${params.userId}`, "user-controller");
@@ -320,7 +321,7 @@ export const userController = new Elysia()
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: "INVALID_FIELD" };
+        return { error: ERROR_CODES.INVALID_FIELD };
       }
     },
     {
