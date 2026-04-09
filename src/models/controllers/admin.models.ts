@@ -36,3 +36,14 @@ export const getReportsResponse = {
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
 };
+
+export const updateReportBody = t.Object({
+  resolved: t.Optional(t.Boolean()),
+  actionTaken: t.Optional(t.String()),
+});
+
+export const updateReportResponse = {
+  200: t.Object({ status: t.String() }),
+  400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+};

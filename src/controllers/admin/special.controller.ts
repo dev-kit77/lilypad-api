@@ -1,8 +1,10 @@
 import { Elysia, t } from "elysia";
 import { prisma } from "../../../lib/prisma";
 import {
-  getReportsResponse,
   reportResponse,
+  getReportsResponse,
+  updateReportBody,
+  updateReportResponse,
 } from "../../models/controllers/admin.models";
 import { log } from "../../../lib/log";
 
@@ -110,6 +112,58 @@ export const specialController = (app: Elysia) =>
         response: reportResponse,
         detail: {
           description: "Get a report by its CUID.",
+          tags: ["Content"],
+        },
+      },
+    )
+    .put(
+      "/special/:reportId",
+      async ({ body, params, set }) => {
+        log.out(
+          `PUT request at /special/${params.reportId}`,
+          "special-controller",
+        );
+        try {
+          log.out(
+            `Updating report ${params.reportId} to resolved ${body.resolved} with action ${body.actionTaken}`,
+            "special-controller",
+          );
+
+          const result = await prisma.report.update({
+            where: { CUID: params.reportId },
+            data: {
+              resolved: body.resolved ?? false,
+              action: body.actionTaken,
+            },
+          });
+
+          if (!result) {
+            set.status = 404;
+            log.err(
+              404,
+              `Report ${params.reportId} not found`,
+              "special-controller",
+            );
+            return { error: "FORBIDDEN" };
+          }
+          log.success(
+            `Updating report ${params.reportId} to resolved ${body.resolved} with action ${body.actionTaken}`,
+            "special-controller",
+          );
+
+          return { status: "OK" };
+        } catch (e) {
+          set.status = 400;
+          log.err(400, `Invalid field: ${e}`, "special-controller");
+          return { error: "INVALID_FIELD" };
+        }
+      },
+      {
+        auth: "admin",
+        body: updateReportBody,
+        response: updateReportResponse,
+        detail: {
+          description: "Update a report by its CUID.",
           tags: ["Content"],
         },
       },
