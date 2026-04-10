@@ -47,7 +47,7 @@ export const updateReportBody = t.Object({
 });
 
 export const updateReportResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ report: reportItem }),
   400: t.Object({ error: t.String() }),
   404: t.Object({ error: t.String() }),
 };
