@@ -236,6 +236,24 @@ describe("User endpoints", () => {
       expect(getBody.status as string).toBe(uniqueStatus);
     });
 
+    it("returns 200 when updating bio", async () => {
+      const uniqueBio = `Bio text ${Date.now()}`;
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ bio: uniqueBio }),
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body.status).toBe("OK");
+
+      const getRes = await authedFetch(
+        `/user/${session.userId}`,
+        session.cookie,
+      );
+      const getBody = (await getRes.json()) as Record<string, unknown>;
+      expect(getBody.bio as string).toBe(uniqueBio);
+    });
+
     it("returns 200 when updating settings (dark mode)", async () => {
       const res = await authedFetch("/user", session.cookie, {
         method: "PUT",
@@ -300,12 +318,20 @@ describe("User endpoints", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 200 when updating with unknown field (ignored)", async () => {
+    it("returns 400 when bio exceeds reasonable length", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ bio: "a".repeat(1000) }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 with no optional fields", async () => {
       const res = await authedFetch("/user", session.cookie, {
         method: "PUT",
         body: JSON.stringify({ invalidField: "test" }),
       });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
     });
   });
 
