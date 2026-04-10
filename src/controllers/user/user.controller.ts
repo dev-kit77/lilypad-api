@@ -113,9 +113,7 @@ export const userController = new Elysia()
           ...(dbUser.profile?.status !== ""
             ? { status: dbUser.profile?.status }
             : {}),
-          ...(dbUser.profile?.bio !== ""
-            ? { status: dbUser.profile?.bio }
-            : {}),
+          ...(dbUser.profile?.bio !== "" ? { bio: dbUser.profile?.bio } : {}),
           settings: {
             dark: dbUser.settings?.dark ?? false,
             anon: dbUser.settings?.anon ?? false,
