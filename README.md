@@ -2,6 +2,14 @@
 
 This repo contains the backend infrastructure for Lilypad, our concept for an invite-only forum focused on micro-locality and fostering conversations among people in their immediate area. We used [Bun](https://bun.com), which is a fast all-in-one JavaScript runtime.
 
+## API overview
+
+- **Authentication** is handled with [Better Auth](https://www.better-auth.com/), exposed under `/auth/*` alongside the REST API.
+- **Authorization** uses two roles: **user** (default) and **admin** (for moderation and admin-only routes).
+- The API exposes **CRUD-style operations** for core resources (for example users, posts, replies, votes, reports, and locality-aware feeds), with validation on inputs and structured error responses.
+- **Interactive documentation** is served at **`/swagger`** once the server is running.
+- **Rate limiting** is applied per client IP using a custom middleware, and counters are stored in **Redis** for a fast and efficient storage/retrieval
+
 ## Run options
 
 You can run the backend in one of two ways:
