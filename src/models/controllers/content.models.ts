@@ -52,7 +52,7 @@ export const spatialContentGetResponse = {
 };
 
 export const postCreateBody = t.Object({
-  content: t.String({ minLength: 1 }),
+  content: t.String({ minLength: 1, maxLength: 255 }),
   locality: t.Object({
     lat: t.Number({ minimum: -90, maximum: 90 }),
     lon: t.Number({ minimum: -180, maximum: 180 }),
