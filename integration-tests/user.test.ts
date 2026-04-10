@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
   authedFetch,
-  deleteCurrentUser,
-  deleteReport,
-  promoteUserToAdminForTest,
   fetchWithTimeout,
   trackForCleanup,
   cleanupAll,
@@ -16,14 +13,17 @@ import {
   createTestUserReport,
   TEST_PASSWORD,
 } from "./helpers/factory";
-import type { GdprSarResponse, OkResponse } from "./helpers/types";
 
 describe("User endpoints", () => {
   let session: AuthSession;
 
   beforeAll(async () => {
     session = await createTestUser("user-test");
-    trackForCleanup({ type: "user", id: session.userId, cookie: session.cookie });
+    trackForCleanup({
+      type: "user",
+      id: session.userId,
+      cookie: session.cookie,
+    });
   });
 
   afterAll(async () => {
@@ -32,44 +32,34 @@ describe("User endpoints", () => {
 
   describe("GET /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(
-        `${apiBase()}/api/user`,
-      );
+      const res = await fetchWithTimeout(`${apiBase()}/api/user`);
       expect(res.status).toBe(401);
     });
   });
 
   describe("PUT /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(
-        `${apiBase()}/api/user`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: "newname" }),
-        },
-      );
+      const res = await fetchWithTimeout(`${apiBase()}/api/user`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "newname" }),
+      });
       expect(res.status).toBe(401);
     });
   });
 
   describe("DELETE /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(
-        `${apiBase()}/api/user`,
-        {
-          method: "DELETE",
-        },
-      );
+      const res = await fetchWithTimeout(`${apiBase()}/api/user`, {
+        method: "DELETE",
+      });
       expect(res.status).toBe(401);
     });
   });
 
   describe("GET /api/user/:userId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(
-        `${apiBase()}/api/user/some-id`,
-      );
+      const res = await fetchWithTimeout(`${apiBase()}/api/user/some-id`);
       expect(res.status).toBe(401);
     });
   });
@@ -94,17 +84,15 @@ describe("User endpoints", () => {
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as Record<string, unknown>;
-      expect(body).toHaveProperty("userId");
-      expect(body).toHaveProperty("username");
-      expect(body).toHaveProperty("settings");
+      expect(body.user).toHaveProperty("userId");
+      expect(body.user).toHaveProperty("username");
+      expect(body.user).toHaveProperty("settings");
     });
   });
 
   describe("GET /api/user/gdpr-sar (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(
-        `${apiBase()}/api/user/gdpr-sar`,
-      );
+      const res = await fetchWithTimeout(`${apiBase()}/api/user/gdpr-sar`);
       expect(res.status).toBe(401);
     });
   });
@@ -112,10 +100,18 @@ describe("User endpoints", () => {
   describe("GET /api/user/gdpr-sar (authenticated)", () => {
     it("returns 200 with downloadable JSON and anonymised reporters", async () => {
       const reporterSession = await createTestUser("reporter");
-      trackForCleanup({ type: "user", id: reporterSession.userId, cookie: reporterSession.cookie });
+      trackForCleanup({
+        type: "user",
+        id: reporterSession.userId,
+        cookie: reporterSession.cookie,
+      });
 
       const adminSession = await createTestAdmin();
-      trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
+      trackForCleanup({
+        type: "user",
+        id: adminSession.userId,
+        cookie: adminSession.cookie,
+      });
 
       const reportRes = await createTestUserReport(
         reporterSession.cookie,
@@ -124,7 +120,11 @@ describe("User endpoints", () => {
         "SAR anonymisation test",
       );
 
-      trackForCleanup({ type: "report", id: reportRes.report.id, cookie: adminSession.cookie });
+      trackForCleanup({
+        type: "report",
+        id: reportRes.report.id,
+        cookie: adminSession.cookie,
+      });
       const res = await authedFetch("/user/gdpr-sar", session.cookie);
       expect(res.status).toBe(200);
 
@@ -205,7 +205,7 @@ describe("User endpoints", () => {
       });
       expect(res.status).toBe(200);
       const body = (await res.json()) as Record<string, unknown>;
-      expect(body.status).toBe("OK");
+      expect(body.user).toBeDefined();
     });
 
     it("returns 200 when updating status", async () => {
@@ -215,12 +215,12 @@ describe("User endpoints", () => {
         body: JSON.stringify({ status: uniqueStatus }),
       });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as Record<string, unknown>;
-      expect(body.status).toBe("OK");
 
       const getRes = await authedFetch("/user", session.cookie);
       const getBody = (await getRes.json()) as Record<string, unknown>;
-      expect(getBody.status as string).toBe(uniqueStatus);
+      expect((getBody.user as Record<string, unknown>).status).toBe(
+        uniqueStatus,
+      );
     });
 
     it("returns 200 when updating bio", async () => {
@@ -230,8 +230,6 @@ describe("User endpoints", () => {
         body: JSON.stringify({ bio: uniqueBio }),
       });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as Record<string, unknown>;
-      expect(body.status).toBe("OK");
 
       const getRes = await authedFetch(
         `/user/${session.userId}`,
@@ -251,7 +249,12 @@ describe("User endpoints", () => {
       const getRes = await authedFetch("/user", session.cookie);
       const getBody = (await getRes.json()) as Record<string, unknown>;
       expect(
-        (getBody.settings as Record<string, unknown>).dark as boolean,
+        (
+          (getBody.user as Record<string, unknown>).settings as Record<
+            string,
+            unknown
+          >
+        ).dark as boolean,
       ).toBe(true);
     });
 
@@ -265,7 +268,12 @@ describe("User endpoints", () => {
       const getRes = await authedFetch("/user", session.cookie);
       const getBody = (await getRes.json()) as Record<string, unknown>;
       expect(
-        (getBody.settings as Record<string, unknown>).anon as boolean,
+        (
+          (getBody.user as Record<string, unknown>).settings as Record<
+            string,
+            unknown
+          >
+        ).anon as boolean,
       ).toBe(true);
     });
 
@@ -329,8 +337,16 @@ describe("User endpoints", () => {
     beforeAll(async () => {
       targetUserSession = await createTestUser("reporttarget");
       reportSession = await createTestUser("reporter");
-      trackForCleanup({ type: "user", id: targetUserSession.userId, cookie: targetUserSession.cookie });
-      trackForCleanup({ type: "user", id: reportSession.userId, cookie: reportSession.cookie });
+      trackForCleanup({
+        type: "user",
+        id: targetUserSession.userId,
+        cookie: targetUserSession.cookie,
+      });
+      trackForCleanup({
+        type: "user",
+        id: reportSession.userId,
+        cookie: reportSession.cookie,
+      });
     });
 
     it("returns 200 when reporting a user", async () => {
