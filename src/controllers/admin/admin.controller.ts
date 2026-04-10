@@ -5,7 +5,10 @@ import {
   userBanBody,
   userBanResponse,
 } from "../../models/controllers/admin.models";
-import { contentResponse } from "../../models/controllers/content.models";
+import {
+  contentResponse,
+  postResponse,
+} from "../../models/controllers/content.models";
 import { ERROR_CODES } from "../../models/controllers/error-codes.models";
 import { log } from "../../../lib/log";
 
@@ -14,7 +17,7 @@ export const adminController = new Elysia()
   // with role == 'admin'
   .use(authPlugin)
   .get(
-    "/content/user/:userId",
+    "/content/user/:userId/special",
     async ({ params, set }) => {
       log.out(
         `GET request at /content/user/${params.userId}`,
@@ -80,7 +83,7 @@ export const adminController = new Elysia()
     },
   )
   .put(
-    "/user/:userId",
+    "/user/:userId/special",
     async ({ params, body, set }) => {
       console.log(`PUT requested at /user/${params.userId}`);
       const NUMBER_MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000;
@@ -134,4 +137,58 @@ export const adminController = new Elysia()
         tags: ["User"],
       },
     },
-  );
+  )
+  .get(
+    "/content/post/:postId/special",
+    async ({ params, set }) => {
+      log.out(
+        `POST request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+
+      try {
+        const post = await prisma.post.findUnique({
+          where: { CUID: params.postId },
+          include: {
+            user: { include: { settings: true } },
+            _count: { select: { upvotes: true, postReplies: true } },
+          },
+        });
+
+        if (!post) {
+          set.status = 404;
+          log.err(
+            404,
+            `Post not found: ${params.postId}`,
+            "content-controller",
+          );
+          return { error: ERROR_CODES.INVALID_ID };
+        }
+
+        return {
+          post: {
+            id: post.CUID,
+            content: post.content,
+            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            time: post.time,
+            ...(post.updated ? { updated: post.updated } : {}),
+            upvotes: post._count.upvotes,
+            replyCount: post._count.postReplies,
+          },
+        };
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Failed to get post: ${e}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_FIELD };
+      }
+    },
+    {
+      auth: "admin",
+      response: postResponse,
+      detail: {
+        description: "Get a post by its CUID.",
+        tags: ["Content"],
+      },
+    },
+  )
