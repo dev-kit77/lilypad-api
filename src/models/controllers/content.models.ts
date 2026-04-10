@@ -16,6 +16,7 @@ export const postItem = t.Object({
 export const postResponse = {
   200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
+  403: t.Object({ error: t.String() }),
   404: t.Object({ error: t.String() }),
 };
 
@@ -26,6 +27,7 @@ export const contentResponse = {
   }),
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
 };
 
 export const spatialPostItem = t.Object({
@@ -46,6 +48,7 @@ export const spatialContentGetResponse = {
     posts: t.Array(spatialPostItem),
   }),
   400: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postCreateBody = t.Object({
@@ -59,6 +62,8 @@ export const postCreateBody = t.Object({
 export const postCreateResponse = {
   200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postReportBody = t.Object({
@@ -69,6 +74,7 @@ export const postReportBody = t.Object({
 export const postReportResponse = {
   200: t.Object({ report: reportItem }),
   400: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postUpdateBody = t.Object({
@@ -79,17 +85,22 @@ export const postUpdateResponse = {
   200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postUpvoteResponse = {
   200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postDeleteResponse = {
   200: t.Object({ status: t.String() }),
   403: t.Object({ error: t.String() }),
   404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postReplyBody = t.Object({
@@ -99,6 +110,8 @@ export const postReplyBody = t.Object({
 export const postReplyResponse = {
   200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const postRepliesResponse = {

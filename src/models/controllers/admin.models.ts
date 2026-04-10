@@ -10,6 +10,7 @@ export const userBanResponse = {
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
   404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const reportItem = t.Object({
@@ -39,6 +40,7 @@ export const getReportsResponse = {
   }),
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const updateReportBody = t.Object({

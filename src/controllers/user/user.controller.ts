@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import {
   userGetResponse,
+  userGdprSarResponse,
   userUpdateBody,
   userUpdateResponse,
   userDeleteResponse,
@@ -77,6 +78,7 @@ export const userController = new Elysia()
     },
     {
       auth: true,
+      response: userGdprSarResponse,
       detail: {
         description:
           "Export personal data for the authenticated user (GDPR SAR).",
