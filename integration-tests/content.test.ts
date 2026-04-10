@@ -18,7 +18,10 @@ import {
   createTestAdmin,
   createTestPostReport,
 } from "./helpers/factory";
-import type { ApiResponse, FeedResponse, PostReplyResponse } from "./helpers/types";
+import type {
+  ApiResponse,
+  FeedResponse,
+} from "./helpers/types";
 
 const base = () => apiBase();
 
@@ -27,7 +30,11 @@ describe("Content endpoints", () => {
 
   beforeAll(async () => {
     session = await createTestUser("content-test");
-    trackForCleanup({ type: "user", id: session.userId, cookie: session.cookie });
+    trackForCleanup({
+      type: "user",
+      id: session.userId,
+      cookie: session.cookie,
+    });
   });
 
   afterAll(async () => {
@@ -139,7 +146,11 @@ describe("Content endpoints", () => {
       });
       expect(res.status).toBe(200);
       const body = (await res.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: body.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: body.post.id,
+        cookie: session.cookie,
+      });
       expect(body.post).toHaveProperty("id");
       expect(body.post).toHaveProperty("content");
     });
@@ -209,7 +220,11 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const replyRes = await authedFetch(
         `/content/post/${createBody.post.id}/reply`,
@@ -222,7 +237,7 @@ describe("Content endpoints", () => {
       expect(replyRes.status).toBe(400);
     });
 
-    it("returns 400 when replying to non-existent post (validation error)", async () => {
+    it("returns 404 when replying to non-existent post (validation error)", async () => {
       const res = await authedFetch(
         "/content/post/non-existent-id/reply",
         session.cookie,
@@ -231,7 +246,7 @@ describe("Content endpoints", () => {
           body: JSON.stringify({ content: "reply text" }),
         },
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(404);
     });
 
     it("returns 400 when reply content is whitespace only", async () => {
@@ -243,7 +258,11 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const replyRes = await authedFetch(
         `/content/post/${createBody.post.id}/reply`,
@@ -265,7 +284,11 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const replyRes = await authedFetch(
         `/content/post/${createBody.post.id}/reply`,
@@ -297,7 +320,11 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const replyRes = await authedFetch(
         `/content/post/${createBody.post.id}/reply`,
@@ -372,7 +399,11 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const getRes = await authedFetch(
         `/content/post/${createBody.post.id}`,
@@ -382,7 +413,9 @@ describe("Content endpoints", () => {
 
       const getBody = (await getRes.json()) as Record<string, unknown>;
       expect(getBody).toHaveProperty("post");
-      expect((getBody.post as Record<string, unknown>).id).toBe(createBody.post.id);
+      expect((getBody.post as Record<string, unknown>).id).toBe(
+        createBody.post.id,
+      );
     });
   });
 
@@ -397,7 +430,11 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const updateRes = await authedFetch(
         `/content/post/${createBody.post.id}`,
@@ -435,7 +472,11 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const updateRes = await authedFetch(
         `/content/post/${createBody.post.id}`,
@@ -559,7 +600,11 @@ describe("Content endpoints", () => {
         session.cookie,
         "Post to report",
       );
-      trackForCleanup({ type: "post", id: createdPost.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createdPost.post.id,
+        cookie: session.cookie,
+      });
 
       const reportRes = await createTestPostReport(
         session.cookie,
@@ -637,7 +682,11 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const feedRes = await authedFetch(
         "/feed-spatial?lat=51.5074&lon=-0.1278",
@@ -709,7 +758,11 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createBody.post.id,
+        cookie: session.cookie,
+      });
 
       const feedRes = await authedFetch(
         "/feed-spatial?lat=51.5074&lon=-0.1278",
@@ -734,11 +787,19 @@ describe("Content endpoints", () => {
 
     beforeAll(async () => {
       otherUserSession = await createTestUser("other-user");
-      trackForCleanup({ type: "user", id: otherUserSession.userId, cookie: otherUserSession.cookie });
+      trackForCleanup({
+        type: "user",
+        id: otherUserSession.userId,
+        cookie: otherUserSession.cookie,
+      });
 
       const createdPost = await createTestPost(session.cookie, "User A's post");
       createdPostId = createdPost.post.id;
-      trackForCleanup({ type: "post", id: createdPostId, cookie: session.cookie });
+      trackForCleanup({
+        type: "post",
+        id: createdPostId,
+        cookie: session.cookie,
+      });
     });
 
     it("returns 403 when user B tries to update user A's post", async () => {
@@ -814,7 +875,11 @@ describe("Content endpoints", () => {
 
     beforeAll(async () => {
       adminSession = await createTestAdmin();
-      trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
+      trackForCleanup({
+        type: "user",
+        id: adminSession.userId,
+        cookie: adminSession.cookie,
+      });
     });
 
     it("hidden post is not returned in GET /api/content", async () => {
