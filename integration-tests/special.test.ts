@@ -222,4 +222,51 @@ describe("Special (Reports) endpoints", () => {
       expect(res.status).toBe(400);
     });
   });
+
+  describe("DELETE /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetch(
+        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (non-admin)", () => {
+    it("returns 403 for a regular user", async () => {
+      const res = await authedFetch(
+        `/special/${reportId}`,
+        reporterSession.cookie,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (admin, valid ID)", () => {
+    it("returns 200 when deleting a report", async () => {
+      const res = await authedFetch(
+        `/special/${reportId}`,
+        adminSession.cookie,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("status");
+      expect(body.status).toBe("OK");
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (admin, non-existent ID)", () => {
+    it("returns 404 for a non-existent report", async () => {
+      const res = await authedFetch(
+        "/special/non-existent-report-id",
+        adminSession.cookie,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(404);
+    });
+  });
 });
