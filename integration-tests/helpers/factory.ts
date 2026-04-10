@@ -1,4 +1,4 @@
-import { signUp, signIn, fetchWithTimeout, apiBase } from "./http";
+import { signUp, signIn, fetchWithTimeout, apiBase, trackForCleanup } from "./http";
 import { promoteUserToAdminForTest } from "./http";
 import type { AuthSession } from "./http";
 
@@ -15,6 +15,14 @@ export async function createTestUser(
   );
 }
 
+export async function createTrackedTestUser(
+  prefix: string = "testusr",
+): Promise<AuthSession> {
+  const session = await createTestUser(prefix);
+  trackForCleanup({ type: "user", id: session.userId, cookie: session.cookie });
+  return session;
+}
+
 export async function createTestAdmin(
   prefix: string = "testadmin",
 ): Promise<AuthSession> {
@@ -25,6 +33,14 @@ export async function createTestAdmin(
     `${prefix}${timestamp}`,
   );
   await promoteUserToAdminForTest(session.userId);
+  return session;
+}
+
+export async function createTrackedTestAdmin(
+  prefix: string = "testadmin",
+): Promise<AuthSession> {
+  const session = await createTestAdmin(prefix);
+  trackForCleanup({ type: "user", id: session.userId, cookie: session.cookie });
   return session;
 }
 
@@ -54,6 +70,12 @@ export async function createTestPost(cookie: string, content = "Test content") {
     throw new Error(`createTestPost failed: ${res.status}`);
   }
   return (await res.json()) as { post: { id: string; content: string } };
+}
+
+export async function createTrackedTestPost(cookie: string, content = "Test content") {
+  const result = await createTestPost(cookie, content);
+  trackForCleanup({ type: "post", id: result.post.id, cookie });
+  return result;
 }
 
 export async function createTestPostReport(
