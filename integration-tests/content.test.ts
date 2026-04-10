@@ -281,12 +281,85 @@ describe("Content endpoints", () => {
   });
 
   describe("GET /api/content/post/:postId/reply (authenticated)", () => {
+    let createdPostId: string | null = null;
+
+    afterAll(async () => {
+      if (createdPostId) {
+        await deletePost(session.cookie, createdPostId);
+      }
+    });
+
     it("returns 404 for a non-existent post", async () => {
       const res = await authedFetch(
         "/content/post/non-existent-id/reply",
         session.cookie,
       );
       expect(res.status).toBe(404);
+    });
+
+    it("returns 200 with replies array when post has replies", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Parent post for reply test",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const replyRes = await authedFetch(
+        `/content/post/${createdPostId}/reply`,
+        session.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({ content: "First reply" }),
+        },
+      );
+      expect(replyRes.status).toBe(200);
+
+      const getRepliesRes = await authedFetch(
+        `/content/post/${createdPostId}/reply`,
+        session.cookie,
+      );
+      expect(getRepliesRes.status).toBe(200);
+
+      const repliesBody = (await getRepliesRes.json()) as Record<
+        string,
+        unknown
+      >;
+      console.log(JSON.stringify(getRepliesRes));
+      expect(repliesBody).toHaveProperty("replies");
+      expect(Array.isArray(repliesBody.replies)).toBe(true);
+      expect((repliesBody.replies as unknown[]).length).toBe(1);
+    });
+
+    it("returns 200 with empty replies array when post has no replies", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Post with no replies",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
+
+      const getRepliesRes = await authedFetch(
+        `/content/post/${postId}/reply`,
+        session.cookie,
+      );
+      expect(getRepliesRes.status).toBe(200);
+
+      const repliesBody = (await getRepliesRes.json()) as Record<
+        string,
+        unknown
+      >;
+      expect(repliesBody).toHaveProperty("replies");
+      expect(Array.isArray(repliesBody.replies)).toBe(true);
+      expect((repliesBody.replies as unknown[]).length).toBe(0);
+
+      await deletePost(session.cookie, postId);
     });
   });
 
@@ -474,7 +547,9 @@ describe("Content endpoints", () => {
 
   describe("GET /api/feed-spatial (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(`${base()}/api/feed-spatial?lat=51.5&lon=-0.1`);
+      const res = await fetchWithTimeout(
+        `${base()}/api/feed-spatial?lat=51.5&lon=-0.1`,
+      );
       expect(res.status).toBe(401);
     });
   });
@@ -501,12 +576,18 @@ describe("Content endpoints", () => {
     });
 
     it("returns 400 when latitude is missing", async () => {
-      const res = await authedFetch("/feed-spatial?lon=-0.1278", session.cookie);
+      const res = await authedFetch(
+        "/feed-spatial?lon=-0.1278",
+        session.cookie,
+      );
       expect(res.status).toBe(400);
     });
 
     it("returns 400 when longitude is missing", async () => {
-      const res = await authedFetch("/feed-spatial?lat=51.5074", session.cookie);
+      const res = await authedFetch(
+        "/feed-spatial?lat=51.5074",
+        session.cookie,
+      );
       expect(res.status).toBe(400);
     });
 
@@ -544,7 +625,9 @@ describe("Content endpoints", () => {
       );
       expect(feedRes.status).toBe(200);
 
-      const feedBody = (await feedRes.json()) as { posts: Array<Record<string, unknown>> };
+      const feedBody = (await feedRes.json()) as {
+        posts: Array<Record<string, unknown>>;
+      };
       const ourPost = feedBody.posts.find((p) => p.id === createdPostId);
       expect(ourPost).toBeDefined();
       expect(ourPost).toHaveProperty("distanceKm");
@@ -556,7 +639,9 @@ describe("Content endpoints", () => {
         session.cookie,
       );
       expect(res.status).toBe(200);
-      const body = (await res.json()) as { posts: Array<Record<string, unknown>> };
+      const body = (await res.json()) as {
+        posts: Array<Record<string, unknown>>;
+      };
       expect(body.posts).toEqual([]);
     });
 
@@ -614,7 +699,9 @@ describe("Content endpoints", () => {
       );
       expect(feedRes.status).toBe(200);
 
-      const feedBody = (await feedRes.json()) as { posts: Array<{ distanceKm: number }> };
+      const feedBody = (await feedRes.json()) as {
+        posts: Array<{ distanceKm: number }>;
+      };
       for (let i = 1; i < feedBody.posts.length; i++) {
         expect(feedBody.posts[i]!.distanceKm).toBeGreaterThanOrEqual(
           feedBody.posts[i - 1]!.distanceKm,
