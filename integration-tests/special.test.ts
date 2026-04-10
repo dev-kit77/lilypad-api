@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
-  signUp,
-  signIn,
   authedFetch,
   deleteCurrentUser,
   deleteReport,
-  promoteUserToAdminForTest,
   fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
+import {
+  createTestUser,
+  createTestAdmin,
+  createTestUserReport,
+} from "./helpers/factory";
 
 describe("Special (Reports) endpoints", () => {
   let reporterSession: AuthSession;
@@ -25,63 +27,25 @@ describe("Special (Reports) endpoints", () => {
     reportedUserID?: string;
   } | null = null;
   let adminSession: AuthSession;
-  let reportId: string | null = null;
 
   beforeAll(async () => {
-    reporterSession = await signUp(
-      `reporter-${Date.now()}@test.com`,
-      "password1234",
-      `reporter${Date.now()}`,
-    );
-    targetSession = await signUp(
-      `target-special-${Date.now()}@test.com`,
-      "password1234",
-      `target${Date.now()}`,
-    );
+    reporterSession = await createTestUser("reporter");
+    targetSession = await createTestUser("target-special");
+    adminSession = await createTestAdmin();
 
-    const adminEmail = `admin-special-${Date.now()}@test.com`;
-    const adminPassword = "password1234";
-    adminSession = await signUp(
-      adminEmail,
-      adminPassword,
-      `adminspecial${Date.now()}`,
-    );
-    await promoteUserToAdminForTest(adminSession.userId);
-    adminSession = await signIn(adminEmail, adminPassword);
-
-    const reportRes = await authedFetch(
-      `/user/${targetSession.userId}/report`,
+    const reportRes = await createTestUserReport(
       reporterSession.cookie,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          reason: "Test report",
-          content: "Inappropriate behavior",
-        }),
-      },
+      targetSession.userId,
+      "Test report",
+      "Inappropriate behavior",
     );
-    expect(reportRes.status).toBe(200);
 
-    const reportsRes = await authedFetch("/special", adminSession.cookie);
-    const reportBody = (await reportRes.json()) as {
-      report: {
-        id: string;
-        userID: string;
-        reason: string;
-        content: string;
-        time: string;
-        resolved: boolean;
-        action?: string;
-        reportedPostID?: string;
-        reportedUserID?: string;
-      };
-    };
-    createdReport = reportBody.report;
+    createdReport = reportRes.report;
   });
 
   afterAll(async () => {
-    if (reportId) {
-      await deleteReport(adminSession.cookie, reportId);
+    if (createdReport && adminSession?.cookie) {
+      await deleteReport(adminSession.cookie, createdReport.id);
     }
     if (reporterSession?.cookie) {
       await deleteCurrentUser(reporterSession.cookie);
@@ -106,7 +70,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id}`,
       );
       expect(res.status).toBe(401);
     });
@@ -115,7 +79,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -129,7 +93,7 @@ describe("Special (Reports) endpoints", () => {
   describe("DELETE /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id}`,
         { method: "DELETE" },
       );
       expect(res.status).toBe(401);
@@ -166,7 +130,7 @@ describe("Special (Reports) endpoints", () => {
 
   describe("GET /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
       );
       expect(res.status).toBe(401);
@@ -217,7 +181,7 @@ describe("Special (Reports) endpoints", () => {
 
   describe("PUT /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
         {
           method: "PUT",
@@ -285,7 +249,7 @@ describe("Special (Reports) endpoints", () => {
 
   describe("DELETE /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
         { method: "DELETE" },
       );

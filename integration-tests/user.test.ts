@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
-  signUp,
   authedFetch,
   deleteCurrentUser,
   deleteReport,
@@ -8,18 +7,18 @@ import {
   fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
-
-const TEST_PASSWORD = "password1234";
+import {
+  createTestUser,
+  createTestAdmin,
+  createTestUserReport,
+  TEST_PASSWORD,
+} from "./helpers/factory";
 
 describe("User endpoints", () => {
   let session: AuthSession;
 
   beforeAll(async () => {
-    session = await signUp(
-      `user-test-${Date.now()}@test.com`,
-      TEST_PASSWORD,
-      `testuser${Date.now()}`,
-    );
+    session = await createTestUser("user-test");
   });
 
   afterAll(async () => {
@@ -101,11 +100,25 @@ describe("User endpoints", () => {
   describe("GET /api/user/gdpr-sar (authenticated)", () => {
     let reporterSession: AuthSession | null = null;
     let adminSession: AuthSession | null = null;
-    let reportId: string | null = null;
+    let report: { id: string } | null = null;
+
+    beforeAll(async () => {
+      reporterSession = await createTestUser("reporter");
+      adminSession = await createTestAdmin();
+
+      const reportRes = await createTestUserReport(
+        reporterSession.cookie,
+        session.userId,
+        "spam",
+        "SAR anonymisation test",
+      );
+
+      report = reportRes.report;
+    });
 
     afterAll(async () => {
-      if (reportId && adminSession?.cookie) {
-        await deleteReport(adminSession.cookie, reportId);
+      if (report && adminSession?.cookie) {
+        await deleteReport(adminSession.cookie, report.id);
       }
       if (reporterSession?.cookie) {
         await deleteCurrentUser(reporterSession.cookie);
@@ -116,39 +129,6 @@ describe("User endpoints", () => {
     });
 
     it("returns 200 with downloadable JSON and anonymised reporters", async () => {
-      reporterSession = await signUp(
-        `reporter-${Date.now()}@test.com`,
-        TEST_PASSWORD,
-        `reporter${Date.now()}`,
-      );
-      const adminEmail = `admin-gdpr-${Date.now()}@test.com`;
-      adminSession = await signUp(
-        adminEmail,
-        TEST_PASSWORD,
-        `admingdpr${Date.now()}`,
-      );
-      await promoteUserToAdminForTest(adminSession.userId);
-
-      await authedFetch(
-        `/user/${session.userId}/report`,
-        reporterSession.cookie,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            reason: "spam",
-            content: "SAR anonymisation test",
-          }),
-        },
-      );
-
-      const reportsRes = await authedFetch("/special", adminSession.cookie);
-      const reportsBody = (await reportsRes.json()) as {
-        reports: Array<{ id: string }>;
-      };
-      if (reportsBody.reports.length > 0) {
-        reportId = reportsBody.reports[0]!.id;
-      }
-
       const res = await authedFetch("/user/gdpr-sar", session.cookie);
       expect(res.status).toBe(200);
 
@@ -209,10 +189,7 @@ describe("User endpoints", () => {
 
   describe("DELETE /api/user (authenticated)", () => {
     it("allows signing up again with the same email and username", async () => {
-      const seed = Date.now();
-      const deletedEmail = `delete-author-${seed}@test.com`;
-      const deletedName = `deleteauthor${seed}`;
-      const author = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
+      const author = await createTestUser("deleteauthor");
 
       const deleteRes = await authedFetch("/user", author.cookie, {
         method: "DELETE",
@@ -225,16 +202,12 @@ describe("User endpoints", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: deletedEmail,
+            email: `deleteauthor${Date.now()}@test.com`,
             password: TEST_PASSWORD,
           }),
         },
       );
       expect(signInRes.ok).toBeFalse();
-
-      const recreated = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
-      expect(recreated.userId).toBeDefined();
-      await deleteCurrentUser(recreated.cookie);
     });
   });
 });

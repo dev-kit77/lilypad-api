@@ -1,16 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
-  signUp,
   authedFetch,
   deleteCurrentUser,
   deletePost,
   deleteReport,
-  promoteUserToAdminForTest,
   fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
-
-const TEST_PASSWORD = "password1234";
+import {
+  createTestUser,
+  createTestPost,
+  createTestAdmin,
+  createTestPostReport,
+} from "./helpers/factory";
 
 const base = () => process.env.TEST_API_BASE!;
 
@@ -18,11 +20,7 @@ describe("Content endpoints", () => {
   let session: AuthSession;
 
   beforeAll(async () => {
-    session = await signUp(
-      `content-test-${Date.now()}@test.com`,
-      TEST_PASSWORD,
-      `contentuser${Date.now()}`,
-    );
+    session = await createTestUser("content-test");
   });
 
   afterAll(async () => {
@@ -285,42 +283,38 @@ describe("Content endpoints", () => {
 
   describe("POST /api/content/post/:postId (report)", () => {
     let postId: string | null = null;
+    let createdReport: { id: string } | null = null;
+    let adminSession: AuthSession | null = null;
 
     afterAll(async () => {
+      adminSession = await createTestAdmin();
+
       if (postId) {
         await deletePost(session.cookie, postId);
+      }
+      if (createdReport && adminSession?.cookie) {
+        await deleteReport(adminSession.cookie, createdReport.id);
       }
     });
 
     it("returns 200 when reporting a post", async () => {
-      const createRes = await authedFetch("/content/post", session.cookie, {
-        method: "POST",
-        body: JSON.stringify({
-          content: "Post to report",
-          locality: { lat: 51.5074, lon: -0.1278 },
-        }),
-      });
-      expect(createRes.status).toBe(200);
-      const createBody = (await createRes.json()) as { post: { id: string } };
-      postId = createBody.post.id;
-
-      const reportRes = await authedFetch(
-        `/content/post/${postId}`,
+      const createdPost = await createTestPost(
         session.cookie,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            reason: "spam",
-            content: "This is spam",
-          }),
-        },
+        "Post to report",
       );
-      expect(reportRes.status).toBe(200);
-      const reportBody = (await reportRes.json()) as {
-        report: { id: string; reason: string };
-      };
-      expect(reportBody.report).toHaveProperty("id");
-      expect(reportBody.report).toHaveProperty("reason");
+      postId = createdPost.post.id;
+
+      const reportRes = await createTestPostReport(
+        session.cookie,
+        postId,
+        "spam",
+        "This is a spam post.",
+      );
+
+      createdReport = reportRes.report;
+
+      expect(reportRes.report).toHaveProperty("id");
+      expect(reportRes.report).toHaveProperty("reason");
     });
   });
 
@@ -331,22 +325,10 @@ describe("Content endpoints", () => {
     let reportId: string | null = null;
 
     beforeAll(async () => {
-      otherUserSession = await signUp(
-        `other-${Date.now()}@test.com`,
-        "password1234",
-        `otheruser${Date.now()}`,
-      );
+      otherUserSession = await createTestUser("other-user");
 
-      const createRes = await authedFetch("/content/post", session.cookie, {
-        method: "POST",
-        body: JSON.stringify({
-          content: "User A's post",
-          locality: { lat: 51.5074, lon: -0.1278 },
-        }),
-      });
-      expect(createRes.status).toBe(200);
-      const createBody = (await createRes.json()) as { post: { id: string } };
-      userAPostId = createBody.post.id;
+      const createdPost = await createTestPost(session.cookie, "User A's post");
+      userAPostId = createdPost.post.id;
     });
 
     afterAll(async () => {
@@ -407,13 +389,7 @@ describe("Content endpoints", () => {
       );
       expect(res.status).toBe(200);
 
-      const adminEmail = `admin-cross-${Date.now()}@test.com`;
-      adminSession = await signUp(
-        adminEmail,
-        "password1234",
-        `admincross${Date.now()}`,
-      );
-      await promoteUserToAdminForTest(adminSession.userId);
+      adminSession = await createTestAdmin();
 
       const reportsRes = await authedFetch("/special", adminSession.cookie);
       const reportsBody = (await reportsRes.json()) as {

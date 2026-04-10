@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
-  signUp,
-  signIn,
   authedFetch,
   deleteCurrentUser,
-  promoteUserToAdminForTest,
   fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
+import { createTestUser, createTestAdmin } from "./helpers/factory";
 
 const base = () => process.env.TEST_API_BASE!;
 
@@ -16,21 +14,8 @@ describe("Admin endpoints", () => {
   let targetSession: AuthSession;
 
   beforeAll(async () => {
-    targetSession = await signUp(
-      `target-test-${Date.now()}@test.com`,
-      "password1234",
-      `targetuser${Date.now()}`,
-    );
-
-    const adminEmail = `admin-test-${Date.now()}@test.com`;
-    const adminPassword = "password1234";
-    adminSession = await signUp(
-      adminEmail,
-      adminPassword,
-      `adminuser${Date.now()}`,
-    );
-    await promoteUserToAdminForTest(adminSession.userId);
-    adminSession = await signIn(adminEmail, adminPassword);
+    targetSession = await createTestUser("target-test");
+    adminSession = await createTestAdmin();
   });
 
   afterAll(async () => {
