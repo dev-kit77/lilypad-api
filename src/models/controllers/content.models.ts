@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import { reportItem } from "./admin.models";
 
 export const postItem = t.Object({
   id: t.String(),
@@ -65,7 +66,7 @@ export const postReportBody = t.Object({
 });
 
 export const postReportResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ report: reportItem }),
   400: t.Object({ error: t.String() }),
 };
 

@@ -211,7 +211,7 @@ export const contentController = new Elysia()
 
       try {
         log.out(`Creating Report for ${params.postId}`, "user-controller");
-        await prisma.report.create({
+        const report = await prisma.report.create({
           data: {
             userID: user.id,
             reportedPostID: params.postId,
@@ -221,7 +221,23 @@ export const contentController = new Elysia()
         });
         log.success(`Report filed for ${params.postId}`, "user-controller");
 
-        return { status: "OK" };
+        return {
+          report: {
+            id: report.CUID,
+            userID: report.userID,
+            reason: report.reason,
+            content: report.content,
+            time: report.time,
+            resolved: report.resolved,
+            ...(report.action ? { action: report.action } : {}),
+            ...(report.reportedPostID
+              ? { reportedPostID: report.reportedPostID }
+              : {}),
+            ...(report.reportedUserID
+              ? { reportedUserID: report.reportedUserID }
+              : {}),
+          },
+        };
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "user-controller");
