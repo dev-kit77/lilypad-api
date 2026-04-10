@@ -80,6 +80,11 @@ export const postUpdateResponse = {
   403: t.Object({ error: t.String() }),
 };
 
+export const postUpvoteResponse = {
+  200: t.Object({ post: postItem }),
+  400: t.Object({ error: t.String() }),
+};
+
 export const postDeleteResponse = {
   200: t.Object({ status: t.String() }),
   403: t.Object({ error: t.String() }),

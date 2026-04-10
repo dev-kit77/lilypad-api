@@ -100,6 +100,16 @@ describe("Content endpoints", () => {
     });
   });
 
+  describe("PUT /api/content/post/:postId/upvote (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetch(`${base()}/api/content/post/some-id/upvote`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+      });
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe("GET /api/content (authenticated)", () => {
     it("returns 200 with posts and comments arrays", async () => {
       const res = await authedFetch("/content", session.cookie);
@@ -508,6 +518,59 @@ describe("Content endpoints", () => {
     });
   });
 
+  describe("PUT /api/content/post/:postId/upvote (authenticated)", () => {
+    it("returns 200 and adds upvote to own post", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Post to upvote",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string; upvotes: number } };
+      const postId = createBody.post.id;
+
+      const upvoteRes = await authedFetch(`/content/post/${postId}/upvote`, session.cookie, {
+        method: "PUT",
+      });
+      expect(upvoteRes.status).toBe(200);
+      const upvoteBody = (await upvoteRes.json()) as { post: { upvotes: number } };
+      expect(upvoteBody.post.upvotes).toBe(1);
+    });
+
+    it("returns 200 and toggles upvote off when already upvoted", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Post to toggle upvote",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
+
+      await authedFetch(`/content/post/${postId}/upvote`, session.cookie, {
+        method: "PUT",
+      });
+
+      const toggleRes = await authedFetch(`/content/post/${postId}/upvote`, session.cookie, {
+        method: "PUT",
+      });
+      expect(toggleRes.status).toBe(200);
+      const toggleBody = (await toggleRes.json()) as { post: { upvotes: number } };
+      expect(toggleBody.post.upvotes).toBe(0);
+    });
+
+    it("returns 404 for non-existent post", async () => {
+      const res = await authedFetch("/content/post/non-existent-id/upvote", session.cookie, {
+        method: "PUT",
+      });
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe("POST /api/content/post/:postId (report)", () => {
     let postId: string | null = null;
     let createdReport: { id: string } | null = null;
@@ -802,6 +865,17 @@ describe("Content endpoints", () => {
         },
       );
       expect(res.status).toBe(200);
+    });
+
+    it("user B can upvote user A's post", async () => {
+      const res = await authedFetch(
+        `/content/post/${userAPostId}/upvote`,
+        otherUserSession.cookie,
+        { method: "PUT" },
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { post: { upvotes: number } };
+      expect(body.post.upvotes).toBe(1);
     });
   });
 });
