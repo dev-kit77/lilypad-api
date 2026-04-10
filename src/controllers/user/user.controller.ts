@@ -104,7 +104,10 @@ export const userController = new Elysia()
       return {
         userId: dbUser.id,
         username: dbUser.name,
-        status: dbUser.profile?.status ?? "",
+        ...(dbUser.profile?.status !== ""
+          ? { status: dbUser.profile?.status }
+          : {}),
+        ...(dbUser.profile?.bio !== "" ? { status: dbUser.profile?.bio } : {}),
         settings: {
           dark: dbUser.settings?.dark ?? false,
           anon: dbUser.settings?.anon ?? false,
@@ -144,6 +147,21 @@ export const userController = new Elysia()
           );
         }
 
+        if (body.bio) {
+          log.out(
+            `User ${user.id} updating bio to ${body.bio}`,
+            "user-controller",
+          );
+          await prisma.userProfile.update({
+            where: { userID: user.id },
+            data: { bio: body.bio },
+          });
+          log.success(
+            `User ${user.id} updated bio to ${body.bio}`,
+            "user-controller",
+          );
+        }
+
         if (body.status) {
           if (body.status.trim().length === 0) {
             set.status = 400;
@@ -153,10 +171,9 @@ export const userController = new Elysia()
             `User ${user.id} updating status to ${body.status}`,
             "user-controller",
           );
-          await prisma.userProfile.upsert({
+          await prisma.userProfile.update({
             where: { userID: user.id },
-            update: { status: body.status },
-            create: { userID: user.id, name: "", bio: "", status: body.status },
+            data: { status: body.status },
           });
           log.success(
             `User ${user.id} updated status to ${body.status}`,
@@ -182,6 +199,12 @@ export const userController = new Elysia()
             `User ${user.id} updated settings to ${JSON.stringify(body.settings)}`,
             "user-controller",
           );
+        }
+
+        if (!body.username && !body.bio && !body.status && !body.settings) {
+          set.status = 400;
+          log.err(400, `Invalid field in PUT /user`, "user-controller");
+          return { error: ERROR_CODES.INVALID_FIELD };
         }
 
         return { status: "OK" };
