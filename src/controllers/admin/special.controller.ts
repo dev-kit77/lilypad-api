@@ -155,4 +155,42 @@ export const specialController = (app: Elysia) =>
           tags: ["Content"],
         },
       },
+    )
+    .delete(
+      "/special/:reportId",
+      async ({ params, set }) => {
+        log.out(
+          `DELETE request at /special/${params.reportId}`,
+          "special-controller",
+        );
+
+        try {
+          await prisma.report.delete({
+            where: { CUID: params.reportId },
+          });
+
+          log.success(
+            `Deleted report ${params.reportId}`,
+            "special-controller",
+          );
+
+          return { status: "OK" };
+        } catch (e) {
+          set.status = 404;
+          log.err(
+            404,
+            `Report not found: ${params.reportId}`,
+            "special-controller",
+          );
+          return { error: ERROR_CODES.INVALID_ID };
+        }
+      },
+      {
+        auth: "admin",
+        response: updateReportResponse,
+        detail: {
+          description: "Delete a report by its CUID.",
+          tags: ["Content"],
+        },
+      },
     );
