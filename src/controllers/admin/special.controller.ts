@@ -1,4 +1,4 @@
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
@@ -7,9 +7,9 @@ import {
   updateReportBody,
   updateReportResponse,
   deleteReportResponse,
-} from "../../models/controllers/admin.models";
+} from "../../models/admin.models";
 import { log } from "../../../lib/log";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+import { ERROR_CODES } from "../../models/error.models";
 
 export const specialController = (app: Elysia) =>
   app

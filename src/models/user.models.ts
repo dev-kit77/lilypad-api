@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import { postItem } from "./content.models";
 import { reportItem } from "./admin.models";
 
 export const userData = t.Object({
@@ -15,10 +16,22 @@ export const userData = t.Object({
 });
 
 export const userGetResponse = {
-  200: userData,
-  404: t.Object({
-    error: t.String(),
+  200: t.Object({ user: userData }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
+};
+
+export const userGdprSarResponse = {
+  200: t.Object({
+    generatedAt: t.String(),
+    requestType: t.String(),
+    user: t.Unknown(),
+    posts: t.Array(t.Unknown()),
+    reportsFiled: t.Array(t.Unknown()),
+    reportsAgainstUser: t.Array(t.Unknown()),
   }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const userUpdateBody = t.Object({
@@ -34,13 +47,15 @@ export const userUpdateBody = t.Object({
 });
 
 export const userUpdateResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ user: userData }),
   400: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const userDeleteResponse = {
   200: t.Object({ status: t.String() }),
   404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };
 
 export const userPublicGetResponse = {
@@ -60,4 +75,6 @@ export const userReportBody = t.Object({
 export const userReportResponse = {
   200: t.Object({ report: reportItem }),
   400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+  500: t.Object({ error: t.String() }),
 };

@@ -5,12 +5,9 @@ import {
   postToggleResponse,
   userBanBody,
   userBanResponse,
-} from "../../models/controllers/admin.models";
-import {
-  contentResponse,
-  postResponse,
-} from "../../models/controllers/content.models";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+} from "../../models/admin.models";
+import { contentResponse, postResponse } from "../../models/content.models";
+import { ERROR_CODES } from "../../models/error.models";
 import { log } from "../../../lib/log";
 
 export const adminController = new Elysia()
@@ -86,7 +83,10 @@ export const adminController = new Elysia()
   .put(
     "/user/:userId/special",
     async ({ params, body, set }) => {
-      console.log(`PUT requested at /user/${params.userId}`);
+      log.out(
+        `PUT requested at /user/${params.userId}/special`,
+        "admin-controller",
+      );
       const NUMBER_MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000;
       try {
         log.out(`Querying for user ${params.userId}`, "admin-controller");
@@ -144,7 +144,7 @@ export const adminController = new Elysia()
     async ({ params, set }) => {
       log.out(
         `GET request at /content/post/${params.postId}/special`,
-        "content-controller",
+        "admin-controller",
       );
 
       try {
