@@ -135,12 +135,13 @@ export const userController = new Elysia()
     async ({ user, body, set }) => {
       log.out(`PUT request at /user`, "user-controller");
 
-      if (
-        (!body.bio || body.bio.trim().length === 0) &&
-        (!body.username || body.username.trim().length === 0) &&
-        (!body.settings || JSON.stringify(body.settings) === "{}") &&
-        (!body.status || JSON.stringify(body.status).length === 0)
-      ) {
+      const hasUsername = !!body.username?.trim();
+      const hasBio = !!body.bio?.trim();
+      const hasStatus = !!body.status?.trim();
+      const hasSettings =
+        !!body.settings && JSON.stringify(body.settings) !== "{}";
+
+      if (!hasUsername && !hasBio && !hasStatus && !hasSettings) {
         set.status = 400;
         log.err(400, "Invalid field in user update body", "user-controller");
         return { error: ERROR_CODES.INVALID_FIELD };
@@ -148,30 +149,15 @@ export const userController = new Elysia()
 
       const res = await prisma.$transaction(async (tx) => {
         if (body.username) {
-          if (body.username.trim().length === 0) {
-            set.status = 400;
-            return { error: ERROR_CODES.INVALID_FIELD };
-          }
-
           log.out(
             `User ${user.id} updating username to ${body.username}`,
             "user-controller",
           );
 
-          const updatedUser = await tx.user.update({
+          await tx.user.update({
             where: { id: user.id },
             data: { name: body.username },
           });
-
-          if (!updatedUser) {
-            set.status = 500;
-            log.err(
-              500,
-              `Internal server error updating username for user ${user.id}`,
-              "user-controller",
-            );
-            return { error: ERROR_CODES.INTERNAL_SERVER };
-          }
 
           log.success(
             `User ${user.id} updated username to ${body.username}`,
@@ -180,30 +166,15 @@ export const userController = new Elysia()
         }
 
         if (body.bio) {
-          if (body.bio.trim().length === 0) {
-            set.status = 400;
-            return { error: ERROR_CODES.INVALID_FIELD };
-          }
-
           log.out(
             `User ${user.id} updating bio to ${body.bio}`,
             "user-controller",
           );
 
-          const updatedUser = await tx.userProfile.update({
+          await tx.userProfile.update({
             where: { userID: user.id },
             data: { bio: body.bio },
           });
-
-          if (!updatedUser) {
-            set.status = 500;
-            log.err(
-              500,
-              `Internal server error updating username for user ${user.id}`,
-              "user-controller",
-            );
-            return { error: ERROR_CODES.INTERNAL_SERVER };
-          }
 
           log.success(
             `User ${user.id} updated bio to ${body.bio}`,
@@ -212,30 +183,15 @@ export const userController = new Elysia()
         }
 
         if (body.status) {
-          if (body.status.trim().length === 0) {
-            set.status = 400;
-            return { error: ERROR_CODES.INVALID_FIELD };
-          }
-
           log.out(
             `User ${user.id} updating status to ${body.status}`,
             "user-controller",
           );
 
-          const updatedUser = await tx.userProfile.update({
+          await tx.userProfile.update({
             where: { userID: user.id },
             data: { status: body.status },
           });
-
-          if (!updatedUser) {
-            set.status = 500;
-            log.err(
-              500,
-              `User ${user.id} failed to update status to ${body.status}`,
-              "user-controller",
-            );
-            return { error: ERROR_CODES.INTERNAL_SERVER };
-          }
 
           log.success(
             `User ${user.id} updated status to ${body.status}`,
@@ -244,51 +200,30 @@ export const userController = new Elysia()
         }
 
         if (body.settings) {
-          if (JSON.stringify(body.settings) === "{}") {
-            set.status = 400;
-            return { error: ERROR_CODES.INVALID_FIELD };
-          }
-
           log.out(
             `User ${user.id} updating settings to ${JSON.stringify(body.settings)}`,
             "user-controller",
           );
 
-          const updatedUser = await tx.userSettings.upsert({
+          await tx.userSettings.upsert({
             where: { userID: user.id },
             update: body.settings,
             create: { userID: user.id, ...body.settings },
           });
-
-          if (!updatedUser) {
-            set.status = 500;
-            log.err(
-              500,
-              `User ${user.id} failed to update status to ${body.status}`,
-              "user-controller",
-            );
-            return { error: ERROR_CODES.INTERNAL_SERVER };
-          }
 
           log.success(
             `User ${user.id} updated settings to ${JSON.stringify(body.settings)}`,
             "user-controller",
           );
         }
+
+        return await tx.user.findUnique({
+          where: { id: user.id },
+          include: { profile: true, settings: true },
+        });
       });
 
       if (!res) {
-        set.status = 500;
-        log.err(500, `User ${user.id} failed to update`, "user-controller");
-        return { error: ERROR_CODES.INTERNAL_SERVER };
-      }
-
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: { profile: true, settings: true },
-      });
-
-      if (!updatedUser) {
         set.status = 404;
         log.err(404, `User ${user.id} not found`, "user-controller");
         return { error: ERROR_CODES.INVALID_USER };
@@ -296,17 +231,15 @@ export const userController = new Elysia()
 
       return {
         user: {
-          userId: updatedUser.id,
-          username: updatedUser.name,
-          ...(updatedUser.profile?.status !== ""
-            ? { status: updatedUser.profile?.status }
+          userId: res.id,
+          username: res.name,
+          ...(res.profile?.status !== ""
+            ? { status: res.profile?.status }
             : {}),
-          ...(updatedUser.profile?.bio !== ""
-            ? { bio: updatedUser.profile?.bio }
-            : {}),
+          ...(res.profile?.bio !== "" ? { bio: res.profile?.bio } : {}),
           settings: {
-            dark: updatedUser.settings?.dark ?? false,
-            anon: updatedUser.settings?.anon ?? false,
+            dark: res.settings?.dark ?? false,
+            anon: res.settings?.anon ?? false,
           },
         },
       };
