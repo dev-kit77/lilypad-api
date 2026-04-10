@@ -122,7 +122,7 @@ export const contentController = new Elysia()
         }
 
         log.out(`Creating post...`, "content-controller");
-        await prisma.post.create({
+        const created = await prisma.post.create({
           data: {
             userID: user.id,
             content: body.content,
@@ -130,7 +130,37 @@ export const contentController = new Elysia()
           },
         });
         log.success(`Created post!`, "content-controller");
-        return { status: "OK" };
+
+        log.out(`Fetching post...`, "content-controller");
+
+        const post = await prisma.post.findUnique({
+          where: { CUID: created.CUID },
+          include: {
+            user: { include: { settings: true } },
+            _count: { select: { upvotes: true, postReplies: true } },
+          },
+        });
+
+        if (!post) {
+          set.status = 404;
+          log.err(404, `Post not found: ${created.CUID}`, "content-controller");
+          return { error: ERROR_CODES.INVALID_ID };
+        }
+
+        log.success(`Fetched post!`, "content-controller");
+
+        return {
+          post: {
+            id: post.CUID,
+            content: post.content,
+            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            time: post.time,
+            ...(post.updated ? { updated: post.updated } : {}),
+            upvotes: post._count.upvotes,
+            replyCount: post._count.postReplies,
+          },
+        };
       } catch (e) {
         set.status = 400;
         log.err(400, `Failed to create post: ${e}`, "content-controller");
@@ -290,7 +320,7 @@ export const contentController = new Elysia()
         );
 
         log.out(`Creating reply post...`, "content-controller");
-        await prisma.post.create({
+        const created = await prisma.post.create({
           data: {
             userID: user.id,
             content: body.content,
@@ -300,7 +330,37 @@ export const contentController = new Elysia()
         });
 
         log.success(`Reply post created!`, "content-controller");
-        return { status: "OK" };
+
+        log.out(`Fetching post...`, "content-controller");
+
+        const post = await prisma.post.findUnique({
+          where: { CUID: created.CUID },
+          include: {
+            user: { include: { settings: true } },
+            _count: { select: { upvotes: true, postReplies: true } },
+          },
+        });
+
+        if (!post) {
+          set.status = 404;
+          log.err(404, `Post not found: ${created.CUID}`, "content-controller");
+          return { error: ERROR_CODES.INVALID_ID };
+        }
+
+        log.success(`Fetched post!`, "content-controller");
+
+        return {
+          post: {
+            id: post.CUID,
+            content: post.content,
+            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            time: post.time,
+            ...(post.updated ? { updated: post.updated } : {}),
+            upvotes: post._count.upvotes,
+            replyCount: post._count.postReplies,
+          },
+        };
       } catch (e) {
         set.status = 400;
         log.err(400, `Failed to create reply post: ${e}`, "content-controller");
@@ -329,11 +389,6 @@ export const contentController = new Elysia()
       );
 
       try {
-        log.out(
-          `Updating post ${params.postId} content to ${body.content}`,
-          "content-controller",
-        );
-
         log.out(
           `Checking user ${user.id} access for post ${params.postId}`,
           "content-controller",
@@ -390,7 +445,40 @@ export const contentController = new Elysia()
           "content-controller",
         );
 
-        return { status: "OK" };
+        log.out(`Fetching post...`, "content-controller");
+
+        const post = await prisma.post.findUnique({
+          where: { CUID: params.postId },
+          include: {
+            user: { include: { settings: true } },
+            _count: { select: { upvotes: true, postReplies: true } },
+          },
+        });
+
+        if (!post) {
+          set.status = 404;
+          log.err(
+            404,
+            `Post not found: ${params.postId}`,
+            "content-controller",
+          );
+          return { error: ERROR_CODES.INVALID_ID };
+        }
+
+        log.success(`Fetched post!`, "content-controller");
+
+        return {
+          post: {
+            id: post.CUID,
+            content: post.content,
+            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            time: post.time,
+            ...(post.updated ? { updated: post.updated } : {}),
+            upvotes: post._count.upvotes,
+            replyCount: post._count.postReplies,
+          },
+        };
       } catch (e) {
         set.status = 400;
         log.err(400, `Invalid field: ${e}`, "user-controller");

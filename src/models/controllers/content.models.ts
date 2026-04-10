@@ -56,7 +56,7 @@ export const postCreateBody = t.Object({
 });
 
 export const postCreateResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
 };
 
@@ -75,7 +75,7 @@ export const postUpdateBody = t.Object({
 });
 
 export const postUpdateResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
   403: t.Object({ error: t.String() }),
 };
@@ -91,7 +91,7 @@ export const postReplyBody = t.Object({
 });
 
 export const postReplyResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ post: postItem }),
   400: t.Object({ error: t.String() }),
 };
 
