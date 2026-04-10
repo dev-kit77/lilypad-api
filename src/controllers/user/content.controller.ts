@@ -210,6 +210,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
       };
@@ -263,6 +264,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
       };
@@ -431,6 +433,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
       };
@@ -541,6 +544,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
       };
@@ -627,6 +631,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
       };
@@ -752,6 +757,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         })),
       };
