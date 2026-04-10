@@ -101,10 +101,10 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      let existing: { CUID: string };
+      let existing: { CUID: string }[];
 
       try {
-        existing = await prisma.$queryRaw<{ CUID: string }>`
+        existing = await prisma.$queryRaw<{ CUID: string }[]>`
                   SELECT "CUID" FROM "location"
                   WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
                   LIMIT 1`;
@@ -116,13 +116,14 @@ export const contentController = new Elysia()
 
       let locationCUID: string;
 
-      if (existing) {
+      if (existing.length > 0) {
+        const existingLocation = existing[0]!;
         log.success(
-          `Found existing location: CUID=${existing.CUID}`,
+          `Found existing location: CUID=${existingLocation.CUID}`,
           "content-controller",
         );
 
-        locationCUID = existing.CUID;
+        locationCUID = existingLocation.CUID;
       } else {
         locationCUID = createId();
         log.out(
@@ -130,40 +131,34 @@ export const contentController = new Elysia()
           "content-controller",
         );
 
-        let newLocation: { CUID: string } | null = null;
+        let newLocation: { CUID: string }[] | null = null;
 
         try {
-          await prisma.$executeRaw`
-                      INSERT INTO "location" ("CUID", "geog")
-                      VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography)
-                      ON CONFLICT DO NOTHING
-                  `;
-          //reprompt in case of race condition
-          newLocation = await prisma.$queryRaw<{ CUID: string }>`
-                    SELECT "CUID" FROM "location"
-                    WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
-                    LIMIT 1`;
+          await prisma.$executeRaw`INSERT INTO "location" ("CUID", "geog") VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography) ON CONFLICT DO NOTHING`;
+          newLocation = await prisma.$queryRaw<
+            { CUID: string }[]
+          >`SELECT "CUID" FROM "location" WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1) LIMIT 1`;
         } catch (e) {
-          set.status = 500;
           log.err(
             500,
             `Failed to create new location: ${e}`,
             "content-controller",
           );
+          set.status = 500;
           return { error: ERROR_CODES.INTERNAL_SERVER };
         }
 
-        if (!newLocation) {
+        if (!newLocation || newLocation.length === 0) {
           set.status = 500;
           log.err(
             500,
-            `Location creation failed: newLocation is null`,
+            `Location creation failed: newLocation is null or empty`,
             "content-controller",
           );
           return { error: ERROR_CODES.INTERNAL_SERVER };
         }
 
-        locationCUID = newLocation.CUID;
+        locationCUID = newLocation[0]!.CUID;
 
         log.success(
           `Created new location: CUID=${locationCUID}`,
