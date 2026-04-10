@@ -1,95 +1,87 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
-  signUp,
   authedFetch,
   deleteCurrentUser,
-  promoteUserToAdminForTest,
+  deleteReport,
+  fetchWithTimeout,
+  trackForCleanup,
+  cleanupAll,
+  apiBase,
   type AuthSession,
 } from "./helpers/http";
-
-const REPORTER_EMAIL = `reporter-${Date.now()}@test.com`;
-const REPORTER_PASSWORD = "password1234";
-const REPORTER_NAME = `reporter${Date.now()}`;
-
-const TARGET_EMAIL = `target-special-${Date.now()}@test.com`;
-const TARGET_PASSWORD = "password1234";
-const TARGET_NAME = `target${Date.now()}`;
-
-const ADMIN_EMAIL = `admin-special-${Date.now()}@test.com`;
-const ADMIN_PASSWORD = "password1234";
-const ADMIN_NAME = `adminspecial${Date.now()}`;
-
-let reporterSession: AuthSession;
-let targetSession: AuthSession;
-let adminSession: AuthSession;
-let createdReport: {
-  id: string;
-  userID: string;
-  reason: string;
-  content: string;
-  time: string;
-  resolved: boolean;
-  action?: string;
-  reportedPostID?: string;
-  reportedUserID?: string;
-} | null = null;
+import {
+  createTestUser,
+  createTestAdmin,
+  createTestUserReport,
+} from "./helpers/factory";
 
 describe("Special (Reports) endpoints", () => {
+  let reporterSession: AuthSession;
+  let targetSession: AuthSession;
+  let adminSession: AuthSession;
+  let createdReportId: string;
+
   beforeAll(async () => {
-    reporterSession = await signUp(
-      REPORTER_EMAIL,
-      REPORTER_PASSWORD,
-      REPORTER_NAME,
-    );
-    targetSession = await signUp(TARGET_EMAIL, TARGET_PASSWORD, TARGET_NAME);
+    reporterSession = await createTestUser("reporter");
+    targetSession = await createTestUser("target-special");
+    adminSession = await createTestAdmin();
+    trackForCleanup({ type: "user", id: reporterSession.userId, cookie: reporterSession.cookie });
+    trackForCleanup({ type: "user", id: targetSession.userId, cookie: targetSession.cookie });
+    trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
 
-    adminSession = await signUp(ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME);
-    await promoteUserToAdminForTest(adminSession.userId);
-
-    const reportRes = await authedFetch(
-      `/user/${targetSession.userId}/report`,
+    const reportRes = await createTestUserReport(
       reporterSession.cookie,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          reason: "Test report",
-          content: "Inappropriate behavior",
-        }),
-      },
+      targetSession.userId,
+      "Test report",
+      "Inappropriate behavior",
     );
-    expect(reportRes.status).toBe(200);
 
-    const reportBody = (await reportRes.json()) as {
-      report: {
-        id: string;
-        userID: string;
-        reason: string;
-        content: string;
-        time: string;
-        resolved: boolean;
-        action?: string;
-        reportedPostID?: string;
-        reportedUserID?: string;
-      };
-    };
-    createdReport = reportBody.report;
+    createdReportId = reportRes.report.id;
+    trackForCleanup({ type: "report", id: createdReportId, cookie: adminSession.cookie });
   });
 
   afterAll(async () => {
-    if (reporterSession?.cookie) {
-      await deleteCurrentUser(reporterSession.cookie);
-    }
-    if (targetSession?.cookie) {
-      await deleteCurrentUser(targetSession.cookie);
-    }
-    if (adminSession?.cookie) {
-      await deleteCurrentUser(adminSession.cookie);
-    }
+    await cleanupAll();
   });
 
   describe("GET /api/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${process.env.TEST_API_BASE}/api/special`);
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special`,
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("GET /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special/${createdReportId}`,
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("PUT /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special/${createdReportId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resolved: true, actionTaken: "warned" }),
+        },
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special/${createdReportId}`,
+        { method: "DELETE" },
+      );
       expect(res.status).toBe(401);
     });
   });
@@ -116,7 +108,7 @@ describe("Special (Reports) endpoints", () => {
       }>;
       expect(reports.length).toBeGreaterThan(0);
 
-      const targetReports = reports.filter((r) => r.id === createdReport?.id);
+      const targetReports = reports.filter((r) => r.id === createdReportId);
       expect(targetReports.length).toEqual(1);
       expect(targetReports[0]?.userID).toBe(reporterSession.userId);
     });
@@ -124,8 +116,8 @@ describe("Special (Reports) endpoints", () => {
 
   describe("GET /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(
-        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special/${createdReportId}`,
       );
       expect(res.status).toBe(401);
     });
@@ -134,7 +126,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (non-admin)", () => {
     it("returns 403 for a regular user", async () => {
       const res = await authedFetch(
-        `/special/${createdReport?.id ?? "some-id"}`,
+        `/special/${createdReportId}`,
         reporterSession.cookie,
       );
       expect(res.status).toBe(403);
@@ -144,7 +136,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (admin, valid ID)", () => {
     it("returns 200 with report object", async () => {
       const res = await authedFetch(
-        `/special/${createdReport?.id ?? "some-id"}`,
+        `/special/${createdReportId}`,
         adminSession.cookie,
       );
       expect(res.status).toBe(200);
@@ -175,8 +167,8 @@ describe("Special (Reports) endpoints", () => {
 
   describe("PUT /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(
-        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special/${createdReportId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -190,7 +182,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (non-admin)", () => {
     it("returns 403 for a regular user", async () => {
       const res = await authedFetch(
-        `/special/${createdReport?.id ?? "some-id"}`,
+        `/special/${createdReportId}`,
         reporterSession.cookie,
         {
           method: "PUT",
@@ -204,7 +196,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (admin, resolve report)", () => {
     it("returns 200 with report object when resolving a report", async () => {
       const res = await authedFetch(
-        `/special/${createdReport?.id ?? "some-id"}`,
+        `/special/${createdReportId}`,
         adminSession.cookie,
         {
           method: "PUT",
@@ -238,6 +230,53 @@ describe("Special (Reports) endpoints", () => {
         },
       );
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/special/${createdReportId}`,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (non-admin)", () => {
+    it("returns 403 for a regular user", async () => {
+      const res = await authedFetch(
+        `/special/${createdReportId}`,
+        reporterSession.cookie,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (admin, valid ID)", () => {
+    it("returns 200 when deleting a report", async () => {
+      const res = await authedFetch(
+        `/special/${createdReportId}`,
+        adminSession.cookie,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("status");
+      expect(body.status).toBe("OK");
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (admin, non-existent ID)", () => {
+    it("returns 404 for a non-existent report", async () => {
+      const res = await authedFetch(
+        "/special/non-existent-report-id",
+        adminSession.cookie,
+        { method: "DELETE" },
+      );
+      expect(res.status).toBe(404);
     });
   });
 });

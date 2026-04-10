@@ -4,7 +4,8 @@ import { reportItem } from "./admin.models";
 export const userData = t.Object({
   userId: t.String(),
   username: t.String(),
-  status: t.String(),
+  status: t.Optional(t.String()),
+  bio: t.Optional(t.String()),
   settings: t.Object({
     dark: t.Boolean(),
     anon: t.Boolean(),
@@ -21,8 +22,9 @@ export const userGetResponse = {
 };
 
 export const userUpdateBody = t.Object({
-  username: t.Optional(t.String({ minLength: 1 })),
-  status: t.Optional(t.String({ minLength: 1 })),
+  username: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+  status: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+  bio: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
   settings: t.Optional(
     t.Object({
       dark: t.Optional(t.Boolean()),

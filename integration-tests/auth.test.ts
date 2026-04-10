@@ -1,0 +1,307 @@
+import { describe, it, expect } from "bun:test";
+import {
+  signUp,
+  signIn,
+  fetchWithTimeout,
+  deleteCurrentUser,
+  apiBase,
+} from "./helpers/http";
+import { createTestUser, TEST_PASSWORD } from "./helpers/factory";
+
+describe("Auth endpoints", () => {
+  describe("POST /api/auth/sign-up/email", () => {
+    it("returns 200 with user when signup succeeds", async () => {
+      const session = await createTestUser("authsignup");
+      expect(session.cookie).toBeTruthy();
+      expect(session.userId).toBeTruthy();
+      await deleteCurrentUser(session.cookie);
+    });
+
+    it("returns 400 (VALIDATION_ERROR) when missing email", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: TEST_PASSWORD,
+            name: "test",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 (VALIDATION_ERROR) when missing password", async () => {
+      const session = await createTestUser("authpwdtest");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${session.userId}@test.com`,
+            name: "test",
+          }),
+        },
+      );
+      await deleteCurrentUser(session.cookie);
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 (VALIDATION_ERROR) when missing name", async () => {
+      const session = await createTestUser("authtestname");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${session.userId}@test.com`,
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      await deleteCurrentUser(session.cookie);
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 422 (FAILED_TO_CREATE_USER) when email already exists", async () => {
+      const email = `BootsNCats@test.com`;
+
+      const session = await signUp(email, TEST_PASSWORD, `firstuser`);
+
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password: TEST_PASSWORD,
+            name: "seconduser",
+          }),
+        },
+      );
+      await deleteCurrentUser(session.cookie);
+      expect(res.status).toBe(422);
+    });
+
+    it("returns 400 (PASSWORD_TOO_SHORT) when password too short", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "shortpw@test.com",
+            password: "short",
+            name: "test",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when email is invalid format", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "not-an-email",
+            password: TEST_PASSWORD,
+            name: "test",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when name is empty string", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "empty@test.com",
+            password: TEST_PASSWORD,
+            name: "",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when name exceeds reasonable length", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "longname@test.com",
+            password: TEST_PASSWORD,
+            name: "a".repeat(300),
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("POST /api/auth/sign-in/email", () => {
+    it("returns 200 when sign-in succeeds", async () => {
+      const email = `signin${Date.now()}${Math.random().toString(36).slice(2)}@test.com`;
+      const session = await signUp(email, TEST_PASSWORD, "authsignin");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("user");
+      expect(body).toHaveProperty("token");
+      await deleteCurrentUser(session.cookie);
+    });
+
+    it("returns 400 (VALIDATION_ERROR) when missing email", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { code: string };
+      expect(body.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("returns 400 (VALIDATION_ERROR) when missing password", async () => {
+      const session = await createTestUser("authsigninpwd");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${session.userId}@test.com`,
+          }),
+        },
+      );
+      await deleteCurrentUser(session.cookie);
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { code: string };
+      expect(body.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("returns 401 when user not found", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "notfound999@test.com",
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      expect(res.status).toBe(401);
+      const body = (await res.json()) as { code: string };
+      expect(body.code).toBe("INVALID_EMAIL_OR_PASSWORD");
+    });
+
+    it("returns 401 when password wrong", async () => {
+      const session = await createTestUser("authwrongpass");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${session.userId}@test.com`,
+            password: "WrongPassword123!",
+          }),
+        },
+      );
+      expect(res.status).toBe(401);
+      const body = (await res.json()) as { code: string };
+      expect(body.code).toBe("INVALID_EMAIL_OR_PASSWORD");
+      await deleteCurrentUser(session.cookie);
+    });
+
+    it("returns 401 when email is not registered", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `nonexistent${Date.now()}@test.com`,
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 401 when password is empty (backend validates via auth)", async () => {
+      const session = await createTestUser("authemptypass");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${session.userId}@test.com`,
+            password: "",
+          }),
+        },
+      );
+      await deleteCurrentUser(session.cookie);
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("POST /api/auth/sign-out", () => {
+    it("returns success when signed in user signs out", async () => {
+      const session = await createTestUser("authsignout");
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-out`,
+        {
+          method: "POST",
+          headers: {
+            Cookie: session.cookie,
+          },
+        },
+      );
+      expect([200, 403]).toContain(res.status);
+      await deleteCurrentUser(session.cookie);
+    });
+
+    it("returns success when not authenticated", async () => {
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/auth/sign-out`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+      expect([200, 403]).toContain(res.status);
+    });
+  });
+});

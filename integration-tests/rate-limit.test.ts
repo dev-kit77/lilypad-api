@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
+import { fetchWithTimeout, apiBase } from "./helpers/http";
 
-const base = () => process.env.TEST_API_BASE!;
 const LIMIT = 300;
 
 describe("Rate limiting", () => {
@@ -11,11 +11,15 @@ describe("Rate limiting", () => {
     let lastHeaders: Headers | undefined;
 
     for (let i = 0; i < LIMIT + 1; i++) {
-      const res = await fetch(`${base()}/api/`, {
-        headers: {
-          "x-forwarded-for": ip,
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/`,
+        {
+          headers: {
+            "x-forwarded-for": ip,
+          },
         },
-      });
+        10000,
+      );
       lastStatus = res.status;
       lastHeaders = res.headers;
     }

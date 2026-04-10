@@ -1,4 +1,6 @@
-function apiBase(): string {
+const DEFAULT_TIMEOUT_MS = 5000;
+
+export function apiBase(): string {
   return (process.env.TEST_API_BASE ?? "http://127.0.0.1:3000").replace(
     /\/$/,
     "",
@@ -11,6 +13,14 @@ export function apiUrl(path: string): string {
   return `${apiBase()}/api${p}`;
 }
 
+export function fetchWithTimeout(
+  input: URL | Request | string,
+  init?: RequestInit,
+  timeout = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  return fetch(input, { ...init, signal: AbortSignal.timeout(timeout) });
+}
+
 export interface AuthSession {
   cookie: string;
   userId: string;
@@ -21,7 +31,7 @@ export async function signUp(
   password: string,
   name: string,
 ): Promise<AuthSession> {
-  const res = await fetch(apiUrl("/auth/sign-up/email"), {
+  const res = await fetchWithTimeout(apiUrl("/auth/sign-up/email"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, name }),
@@ -41,7 +51,7 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  const res = await fetch(apiUrl("/auth/sign-in/email"), {
+  const res = await fetchWithTimeout(apiUrl("/auth/sign-in/email"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -62,20 +72,61 @@ export function authedFetch(
   path: string,
   cookie: string,
   init: RequestInit = {},
+  timeout: number = DEFAULT_TIMEOUT_MS,
 ): Promise<Response> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   headers.set("Cookie", cookie);
-  return fetch(apiUrl(path), { ...init, headers });
+  return fetch(apiUrl(path), {
+    ...init,
+    headers,
+    signal: AbortSignal.timeout(timeout),
+  });
 }
 
 /** Deletes the signed-in user via DELETE /api/user (same DB path as the running API). */
+export async function signOut(cookie: string): Promise<void> {
+  await fetchWithTimeout(apiUrl("/auth/sign-out"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookie,
+    },
+  });
+}
+
 export async function deleteCurrentUser(cookie: string): Promise<void> {
   const res = await authedFetch("/user", cookie, { method: "DELETE" });
   if (!res.ok && res.status !== 404) {
     console.warn(`[test] DELETE /api/user failed: ${res.status}`);
+  }
+}
+
+/** Deletes a post by ID. */
+export async function deletePost(
+  cookie: string,
+  postId: string,
+): Promise<void> {
+  const res = await authedFetch(`/content/post/${postId}`, cookie, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 404) {
+    console.warn(`[test] DELETE /content/post/${postId} failed: ${res.status}`);
+  }
+}
+
+/** Deletes a report by ID (admin only). */
+export async function deleteReport(
+  cookie: string,
+  reportId: string,
+): Promise<void> {
+  const res = await authedFetch(`/special/${reportId}`, cookie, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 404) {
+    console.warn(`[test] DELETE /special/${reportId} failed: ${res.status}`);
   }
 }
 
@@ -88,7 +139,7 @@ export async function promoteUserToAdminForTest(userId: string): Promise<void> {
   if (!secret) {
     throw new Error("TEST_ADMIN_PROMOTE_SECRET is not set");
   }
-  const res = await fetch(apiUrl("/test/promote-admin"), {
+  const res = await fetchWithTimeout(apiUrl("/test/promote-admin"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -102,5 +153,56 @@ export async function promoteUserToAdminForTest(userId: string): Promise<void> {
       `promote-admin failed (${res.status}): ${text}. ` +
         "Rebuild/restart the API so it includes POST /api/test/promote-admin and TEST_ADMIN_PROMOTE_SECRET (see Dockerfile / docker-compose).",
     );
+  }
+}
+
+export interface CleanupItem {
+  type: "user" | "post" | "report";
+  id: string;
+  cookie: string;
+}
+
+const cleanupQueue: CleanupItem[] = [];
+
+export function trackForCleanup(item: CleanupItem): void {
+  cleanupQueue.push(item);
+}
+
+export function removeFromCleanup(itemId: string): void {
+  const idx = cleanupQueue.findIndex((c) => c.id === itemId);
+  if (idx !== -1) {
+    cleanupQueue.splice(idx, 1);
+  }
+}
+
+export async function cleanupAll(): Promise<void> {
+  const items = cleanupQueue.splice(0);
+
+  const reports = items.filter((i) => i.type === "report");
+  const posts = items.filter((i) => i.type === "post");
+  const users = items.filter((i) => i.type === "user");
+
+  for (const item of reports) {
+    try {
+      await deleteReport(item.cookie, item.id);
+    } catch {
+      // skip
+    }
+  }
+
+  for (const item of posts) {
+    try {
+      await deletePost(item.cookie, item.id);
+    } catch {
+      // skip
+    }
+  }
+
+  for (const item of users) {
+    try {
+      await deleteCurrentUser(item.cookie);
+    } catch {
+      // skip
+    }
   }
 }
