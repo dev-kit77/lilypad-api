@@ -36,6 +36,7 @@ export const contentController = new Elysia().use(authPlugin).get(
     const posts = await prisma.post.findMany({
       where: {
         CUID: { in: nearby.map((r) => r.CUID) },
+        hidden: false,
       },
       include: {
         user: { include: { settings: true } },

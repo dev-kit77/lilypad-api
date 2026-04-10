@@ -33,7 +33,7 @@ export const contentController = new Elysia()
 
       log.out(`Querying posts for user ${user.id}`, "content-controller");
       const rows = await prisma.post.findMany({
-        where: { userID: user.id },
+        where: { userID: user.id, hidden: false },
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
@@ -202,6 +202,14 @@ export const contentController = new Elysia()
             "content-controller",
           );
           return { error: ERROR_CODES.INVALID_ID };
+        } else if (post.hidden) {
+          set.status = 403;
+          log.err(
+            403,
+            `You do not have permission to view this post: ${params.postId}`,
+            "content-controller",
+          );
+          return { error: ERROR_CODES.INVALID_USER };
         }
 
         return {
@@ -302,7 +310,7 @@ export const contentController = new Elysia()
           "content-controller",
         );
         const parent = await prisma.post.findUnique({
-          where: { CUID: params.postId },
+          where: { CUID: params.postId, hidden: false },
         });
 
         if (!parent) {
@@ -334,7 +342,7 @@ export const contentController = new Elysia()
         log.out(`Fetching post...`, "content-controller");
 
         const post = await prisma.post.findUnique({
-          where: { CUID: created.CUID },
+          where: { CUID: created.CUID, hidden: false },
           include: {
             user: { include: { settings: true } },
             _count: { select: { upvotes: true, postReplies: true } },
@@ -395,7 +403,7 @@ export const contentController = new Elysia()
         );
 
         const existing = await prisma.post.findUnique({
-          where: { CUID: params.postId },
+          where: { CUID: params.postId, hidden: false },
         });
         if (!existing) {
           set.status = 404;
@@ -427,7 +435,7 @@ export const contentController = new Elysia()
         );
 
         const result = await prisma.post.update({
-          where: { CUID: params.postId },
+          where: { CUID: params.postId, hidden: false },
           data: { content: body.content, updated: new Date() },
         });
 
@@ -509,7 +517,7 @@ export const contentController = new Elysia()
       );
 
       const existing = await prisma.post.findUnique({
-        where: { CUID: params.postId },
+        where: { CUID: params.postId, hidden: false },
       });
       if (!existing) {
         set.status = 404;
@@ -583,7 +591,7 @@ export const contentController = new Elysia()
       log.success(`Found post ${params.postId}`, "content-controller");
 
       const replies = await prisma.post.findMany({
-        where: { replyingToID: params.postId },
+        where: { replyingToID: params.postId, hidden: false },
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
