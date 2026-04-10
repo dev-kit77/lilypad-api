@@ -92,6 +92,18 @@ describe("Admin endpoints", () => {
   });
 
   describe("PUT /api/user/:userId (admin) — ban", () => {
+    let banTestSession: AuthSession;
+
+    beforeAll(async () => {
+      banTestSession = await createTestUser("bantest");
+    });
+
+    afterAll(async () => {
+      if (banTestSession?.cookie) {
+        await deleteCurrentUser(banTestSession.cookie);
+      }
+    });
+
     it("returns 200 when banning a user with a time-limited ban", async () => {
       const res = await authedFetch(
         `/user/${targetSession.userId}`,
@@ -130,6 +142,36 @@ describe("Admin endpoints", () => {
         },
       );
       expect(res.status).toBe(404);
+    });
+
+    it("banned user cannot access authenticated endpoints", async () => {
+      const banRes = await authedFetch(
+        `/user/${banTestSession.userId}`,
+        adminSession.cookie,
+        {
+          method: "PUT",
+          body: JSON.stringify({ active: true }),
+        },
+      );
+      expect(banRes.status).toBe(200);
+
+      const accessRes = await authedFetch("/user", banTestSession.cookie);
+      expect(accessRes.status).toBe(401);
+    });
+
+    it("unbanned user can access authenticated endpoints again", async () => {
+      const unbanRes = await authedFetch(
+        `/user/${banTestSession.userId}`,
+        adminSession.cookie,
+        {
+          method: "PUT",
+          body: JSON.stringify({ active: false }),
+        },
+      );
+      expect(unbanRes.status).toBe(200);
+
+      const accessRes = await authedFetch("/user", banTestSession.cookie);
+      expect(accessRes.status).toBe(200);
     });
   });
 });
