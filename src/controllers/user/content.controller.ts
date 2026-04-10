@@ -565,7 +565,7 @@ export const contentController = new Elysia()
    */
   .put(
     "/content/post/:postId/upvote",
-    async ({ user, params, body, set }) => {
+    async ({ user, params, set }) => {
       log.out(
         `PUT request at /content/post/${params.postId}`,
         "content-controller",
@@ -574,83 +574,31 @@ export const contentController = new Elysia()
       log.out(`Getting post ${params.postId}`, "content-controller");
 
       const existing = await prisma.post.findUnique({
-        where: { CUID: params.postId },
-        include: { upvotes: true },
+        where: { CUID: params.postId, hidden: false },
+        include: { upvotes: { where: { id: user.id }, take: 1 } },
       });
 
       if (!existing) {
         set.status = 404;
         log.err(404, `Post not found: ${params.postId}`, "content-controller");
         return { error: ERROR_CODES.INVALID_ID };
-      } else if (existing.upvotes.find((u) => u.id === user.id)) {
-        log.out(
-          `Upvoting post ${params.postId} from ${user.id}`,
-          "content-controller",
-        );
-
-        var updated = await prisma.post
-          .update({
-            where: {
-              CUID: params.postId,
-            },
-            data: {
-              upvotes: {
-                disconnect: { id: user.id },
-              },
-            },
-          })
-          .catch(async () => {
-            updated = await prisma.post.update({
-              where: {
-                CUID: params.postId,
-              },
-              data: {
-                upvotes: {
-                  connect: { id: user.id },
-                },
-              },
-            });
-          });
-      } else {
-        log.out(
-          `Upvoting post ${params.postId} from ${user.id}`,
-          "content-controller",
-        );
-
-        var updated = await prisma.post
-          .update({
-            where: {
-              CUID: params.postId,
-            },
-            data: {
-              upvotes: {
-                connect: { id: user.id },
-              },
-            },
-          })
-          .catch(async () => {
-            updated = await prisma.post.update({
-              where: {
-                CUID: params.postId,
-              },
-              data: {
-                upvotes: {
-                  disconnect: { id: user.id },
-                },
-              },
-            });
-          });
       }
 
-      if (!updated) {
-        set.status = 500;
-        log.err(
-          500,
-          `Failed to update post ${params.postId} upvote by ${user.id}`,
-          "content-controller",
-        );
-        return { error: ERROR_CODES.INTERNAL_SERVER };
-      }
+      log.out(
+        `Upvoting post ${params.postId} from ${user.id}`,
+        "content-controller",
+      );
+
+      const hasUpvoted = existing.upvotes.length > 1;
+
+      const updated = await prisma.post.update({
+        where: { CUID: params.postId },
+        data: {
+          upvotes: {
+            [hasUpvoted ? "disconnect" : "connect"]: { id: user.id },
+          },
+        },
+      });
 
       log.success(
         `Post ${params.postId} upvote toggled by ${user.id}`,
