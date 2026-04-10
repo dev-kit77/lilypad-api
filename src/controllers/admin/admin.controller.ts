@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import { prisma } from "../../../lib/prisma";
 import {
+  postToggleResponse,
   userBanBody,
   userBanResponse,
 } from "../../models/controllers/admin.models";
@@ -192,3 +193,68 @@ export const adminController = new Elysia()
       },
     },
   )
+  /**
+   * Upvote a post.
+   */
+  .put(
+    "/content/post/:postId/special",
+    async ({ params, set }) => {
+      log.out(
+        `PUT request at /content/post/${params.postId}`,
+        "content-controller",
+      );
+
+      try {
+        log.out(`Getting post ${params.postId}`, "content-controller");
+
+        const existing = await prisma.post.findUnique({
+          where: { CUID: params.postId },
+          include: { upvotes: true },
+        });
+        if (!existing) {
+          set.status = 404;
+          log.err(
+            404,
+            `Post not found: ${params.postId}`,
+            "content-controller",
+          );
+          return { error: ERROR_CODES.INVALID_ID };
+        }
+
+        const toggle = !existing.hidden;
+
+        log.out(
+          `Updating post ${params.postId} hidden: ${toggle}`,
+          "content-controller",
+        );
+
+        await prisma.post.update({
+          where: {
+            CUID: params.postId,
+          },
+          data: {
+            hidden: toggle,
+          },
+        });
+
+        log.success(
+          `Post ${params.postId} hidden: ${toggle}`,
+          "content-controller",
+        );
+
+        return { hidden: toggle };
+      } catch (e) {
+        set.status = 400;
+        log.err(400, `Invalid field: ${e}`, "user-controller");
+        return { error: ERROR_CODES.INVALID_FIELD };
+      }
+    },
+    {
+      auth: "admin",
+      response: postToggleResponse,
+      detail: {
+        description: "Upvote a post.",
+        tags: ["Content"],
+      },
+    },
+  );

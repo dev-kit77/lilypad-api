@@ -51,3 +51,9 @@ export const updateReportResponse = {
   400: t.Object({ error: t.String() }),
   404: t.Object({ error: t.String() }),
 };
+
+export const postToggleResponse = {
+  200: t.Object({ hidden: t.Boolean() }),
+  400: t.Object({ error: t.String() }),
+  404: t.Object({ error: t.String() }),
+};
