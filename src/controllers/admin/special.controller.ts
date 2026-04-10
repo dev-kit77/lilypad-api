@@ -1,4 +1,4 @@
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
