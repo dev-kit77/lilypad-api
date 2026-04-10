@@ -86,7 +86,10 @@ export const adminController = new Elysia()
   .put(
     "/user/:userId/special",
     async ({ params, body, set }) => {
-      console.log(`PUT requested at /user/${params.userId}`);
+      log.out(
+        `PUT requested at /user/${params.userId}/special`,
+        "admin-controller",
+      );
       const NUMBER_MILLISECONDS_IN_A_DAY = 24 * 60 * 60 * 1000;
       try {
         log.out(`Querying for user ${params.userId}`, "admin-controller");
