@@ -136,11 +136,48 @@ export const specialController = (app: Elysia) =>
             return { error: ERROR_CODES.INVALID_ID };
           }
           log.success(
-            `Updating report ${params.reportId} to resolved ${body.resolved} with action ${body.actionTaken}`,
+            `Updated report ${params.reportId} to resolved ${body.resolved} with action ${body.actionTaken}`,
             "special-controller",
           );
 
-          return { status: "OK" };
+          log.out(
+            `Fetching updated report ${params.reportId}`,
+            "special-controller",
+          );
+
+          const report = await prisma.report.findUnique({
+            where: { CUID: params.reportId },
+          });
+
+          if (!report) {
+            set.status = 404;
+            log.err(
+              404,
+              `Report not found: ${params.reportId}`,
+              "content-controller",
+            );
+            return { error: ERROR_CODES.INVALID_ID };
+          }
+
+          log.success(`Found report ${params.reportId}`, "special-controller");
+
+          return {
+            report: {
+              id: report.CUID,
+              userID: report.userID,
+              reason: report.reason,
+              content: report.content,
+              time: report.time,
+              resolved: report.resolved,
+              ...(report.action ? { action: report.action } : {}),
+              ...(report.reportedPostID
+                ? { reportedPostID: report.reportedPostID }
+                : {}),
+              ...(report.reportedUserID
+                ? { reportedUserID: report.reportedUserID }
+                : {}),
+            },
+          };
         } catch (e) {
           set.status = 400;
           log.err(400, `Invalid field: ${e}`, "special-controller");

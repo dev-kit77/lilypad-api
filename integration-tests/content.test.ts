@@ -111,7 +111,7 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post (authenticated)", () => {
-    it("returns 200 when creating a post", async () => {
+    it("returns 200 with post object when creating a post", async () => {
       const res = await authedFetch("/content/post", session.cookie, {
         method: "POST",
         body: JSON.stringify({
@@ -120,8 +120,9 @@ describe("Content endpoints", () => {
         }),
       });
       expect(res.status).toBe(200);
-      const body = (await res.json()) as Record<string, unknown>;
-      expect(body.status).toBe("OK");
+      const body = (await res.json()) as { post: { id: string } };
+      expect(body.post).toHaveProperty("id");
+      expect(body.post).toHaveProperty("content");
     });
 
     it("returns 400 when content is empty", async () => {
@@ -172,6 +173,8 @@ describe("Content endpoints", () => {
         }),
       });
       expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
 
       const contentRes = await authedFetch("/content", session.cookie);
       const contentBody = (await contentRes.json()) as {
@@ -209,6 +212,8 @@ describe("Content endpoints", () => {
         }),
       });
       expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
 
       const contentRes = await authedFetch("/content", session.cookie);
       const contentBody = (await contentRes.json()) as {
@@ -225,8 +230,9 @@ describe("Content endpoints", () => {
         },
       );
       expect(updateRes.status).toBe(200);
-      const updateBody = (await updateRes.json()) as Record<string, unknown>;
-      expect(updateBody.status).toBe("OK");
+      const updateBody = (await updateRes.json()) as { post: { id: string } };
+      expect(updateBody.post).toHaveProperty("id");
+      expect(updateBody.post).toHaveProperty("content");
     });
 
     it("returns 404 for invalid post ID", async () => {
@@ -252,18 +258,12 @@ describe("Content endpoints", () => {
         }),
       });
       expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
 
-      const contentRes = await authedFetch("/content", session.cookie);
-      const contentBody = (await contentRes.json()) as {
-        posts: Array<{ id: string }>;
-      };
-      const postId = contentBody.posts[0]!.id;
-
-      const deleteRes = await authedFetch(
-        `/content/post/${postId}`,
-        session.cookie,
-        { method: "DELETE" },
-      );
+      const deleteRes = await authedFetch(`/content/post/${postId}`, session.cookie, {
+        method: "DELETE",
+      });
       expect(deleteRes.status).toBe(200);
     });
 
@@ -303,7 +303,10 @@ describe("Content endpoints", () => {
         }),
       });
       expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
 
+<<<<<<< HEAD
       const contentRes = await authedFetch("/content", session.cookie);
       const contentBody = (await contentRes.json()) as {
         posts: Array<{ id: string }>;
@@ -340,6 +343,21 @@ describe("Content endpoints", () => {
       if (reportsBody.reports.length > 0) {
         reportId = reportsBody.reports[0]!.id;
       }
+=======
+      const reportRes = await authedFetch(`/content/post/${postId}`, session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          reason: "spam",
+          content: "This is spam",
+        }),
+      });
+      expect(reportRes.status).toBe(200);
+      const reportBody = (await reportRes.json()) as {
+        report: { id: string; reason: string };
+      };
+      expect(reportBody.report).toHaveProperty("id");
+      expect(reportBody.report).toHaveProperty("reason");
+>>>>>>> 7d6c11e482fb94012aaf21edac27e291da087b99
     });
   });
 
@@ -364,12 +382,8 @@ describe("Content endpoints", () => {
         }),
       });
       expect(createRes.status).toBe(200);
-
-      const contentRes = await authedFetch("/content", session.cookie);
-      const contentBody = (await contentRes.json()) as {
-        posts: Array<{ id: string }>;
-      };
-      userAPostId = contentBody.posts[0]!.id;
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      userAPostId = createBody.post.id;
     });
 
     afterAll(async () => {

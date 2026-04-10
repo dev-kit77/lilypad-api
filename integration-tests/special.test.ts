@@ -13,6 +13,17 @@ import {
 describe("Special (Reports) endpoints", () => {
   let reporterSession: AuthSession;
   let targetSession: AuthSession;
+  let createdReport: {
+    id: string;
+    userID: string;
+    reason: string;
+    content: string;
+    time: string;
+    resolved: boolean;
+    action?: string;
+    reportedPostID?: string;
+    reportedUserID?: string;
+  } | null = null;
   let adminSession: AuthSession;
   let reportId: string | null = null;
 
@@ -52,12 +63,20 @@ describe("Special (Reports) endpoints", () => {
     expect(reportRes.status).toBe(200);
 
     const reportsRes = await authedFetch("/special", adminSession.cookie);
-    const reportsBody = (await reportsRes.json()) as {
-      reports: Array<{ id: string }>;
+    const reportBody = (await reportRes.json()) as {
+      report: {
+        id: string;
+        userID: string;
+        reason: string;
+        content: string;
+        time: string;
+        resolved: boolean;
+        action?: string;
+        reportedPostID?: string;
+        reportedUserID?: string;
+      };
     };
-    if (reportsBody.reports.length > 0) {
-      reportId = reportsBody.reports[0]!.id;
-    }
+    createdReport = reportBody.report;
   });
 
   afterAll(async () => {
@@ -123,7 +142,7 @@ describe("Special (Reports) endpoints", () => {
   });
 
   describe("GET /api/special (admin)", () => {
-    it("returns 200 with reports array", async () => {
+    it("returns 200 with reports array containing created report", async () => {
       const res = await authedFetch("/special", adminSession.cookie);
       expect(res.status).toBe(200);
 
@@ -131,25 +150,22 @@ describe("Special (Reports) endpoints", () => {
       expect(body).toHaveProperty("reports");
       expect(Array.isArray(body.reports)).toBe(true);
 
-      const reports = body.reports as unknown[];
+      const reports = body.reports as Array<{
+        id: string;
+        userID: string;
+      }>;
       expect(reports.length).toBeGreaterThan(0);
 
-      const firstReport = reports[0] as Record<string, unknown>;
-      expect(firstReport).toHaveProperty("id");
-      expect(firstReport).toHaveProperty("userID");
-      expect(firstReport).toHaveProperty("reason");
-      expect(firstReport).toHaveProperty("content");
-      expect(firstReport).toHaveProperty("time");
-      expect(firstReport).toHaveProperty("reportedUserID");
-
-      reportId = firstReport.id as string;
+      const targetReports = reports.filter((r) => r.id === createdReport?.id);
+      expect(targetReports.length).toEqual(1);
+      expect(targetReports[0]?.userID).toBe(reporterSession.userId);
     });
   });
 
   describe("GET /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetch(
-        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
       );
       expect(res.status).toBe(401);
     });
@@ -158,7 +174,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (non-admin)", () => {
     it("returns 403 for a regular user", async () => {
       const res = await authedFetch(
-        `/special/${reportId}`,
+        `/special/${createdReport?.id ?? "some-id"}`,
         reporterSession.cookie,
       );
       expect(res.status).toBe(403);
@@ -168,7 +184,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (admin, valid ID)", () => {
     it("returns 200 with report object", async () => {
       const res = await authedFetch(
-        `/special/${reportId}`,
+        `/special/${createdReport?.id ?? "some-id"}`,
         adminSession.cookie,
       );
       expect(res.status).toBe(200);
@@ -200,7 +216,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetch(
-        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -214,7 +230,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (non-admin)", () => {
     it("returns 403 for a regular user", async () => {
       const res = await authedFetch(
-        `/special/${reportId}`,
+        `/special/${createdReport?.id ?? "some-id"}`,
         reporterSession.cookie,
         {
           method: "PUT",
@@ -226,9 +242,9 @@ describe("Special (Reports) endpoints", () => {
   });
 
   describe("PUT /api/special/:reportId (admin, resolve report)", () => {
-    it("returns 200 when resolving a report", async () => {
+    it("returns 200 with report object when resolving a report", async () => {
       const res = await authedFetch(
-        `/special/${reportId}`,
+        `/special/${createdReport?.id ?? "some-id"}`,
         adminSession.cookie,
         {
           method: "PUT",
@@ -237,9 +253,17 @@ describe("Special (Reports) endpoints", () => {
       );
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as Record<string, unknown>;
-      expect(body).toHaveProperty("status");
-      expect(body.status).toBe("OK");
+      const body = (await res.json()) as {
+        report: {
+          id: string;
+          resolved: boolean;
+          action?: string;
+        };
+      };
+      expect(body.report).toHaveProperty("id");
+      expect(body.report).toHaveProperty("resolved");
+      expect(body.report.resolved).toBe(true);
+      expect(body.report.action).toBe("user_warned");
     });
   });
 

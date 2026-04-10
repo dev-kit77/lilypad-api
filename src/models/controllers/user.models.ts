@@ -1,5 +1,5 @@
-import { cuid } from "better-auth";
 import { t } from "elysia";
+import { reportItem } from "./admin.models";
 
 export const userData = t.Object({
   userId: t.String(),
@@ -56,6 +56,6 @@ export const userReportBody = t.Object({
 });
 
 export const userReportResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ report: reportItem }),
   400: t.Object({ error: t.String() }),
 };
