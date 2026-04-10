@@ -96,7 +96,7 @@ export const postReplyResponse = {
 };
 
 export const postRepliesResponse = {
-  200: t.Array(postItem),
+  200: t.Object({ replies: t.Array(postItem) }),
   404: t.Object({ error: t.String() }),
 };
 

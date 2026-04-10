@@ -616,16 +616,18 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      return replies.map((post) => ({
-        id: post.CUID,
-        content: post.content,
-        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-        time: post.time,
-        ...(post.updated ? { updated: post.updated } : {}),
-        upvotes: post._count.upvotes,
-        replyCount: post._count.postReplies,
-      }));
+      return {
+        replies: replies.map((post) => ({
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        })),
+      };
     },
     {
       auth: true,
