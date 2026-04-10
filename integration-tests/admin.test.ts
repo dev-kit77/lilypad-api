@@ -5,6 +5,7 @@ import {
   authedFetch,
   deleteCurrentUser,
   promoteUserToAdminForTest,
+  fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
 
@@ -43,14 +44,14 @@ describe("Admin endpoints", () => {
 
   describe("GET /api/content/user/:userId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/user/some-id`);
+      const res = await fetchWithTimeout(`${base()}/api/content/user/some-id`);
       expect(res.status).toBe(401);
     });
   });
 
   describe("PUT /api/user/:userId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/user/some-id`, {
+      const res = await fetchWithTimeout(`${base()}/api/user/some-id`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: true }),

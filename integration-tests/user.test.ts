@@ -5,6 +5,7 @@ import {
   deleteCurrentUser,
   deleteReport,
   promoteUserToAdminForTest,
+  fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
 
@@ -29,41 +30,51 @@ describe("User endpoints", () => {
 
   describe("GET /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${process.env.TEST_API_BASE}/api/user`);
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/user`,
+      );
       expect(res.status).toBe(401);
     });
   });
 
   describe("PUT /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${process.env.TEST_API_BASE}/api/user`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "newname" }),
-      });
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/user`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: "newname" }),
+        },
+      );
       expect(res.status).toBe(401);
     });
   });
 
   describe("DELETE /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${process.env.TEST_API_BASE}/api/user`, {
-        method: "DELETE",
-      });
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/user`,
+        {
+          method: "DELETE",
+        },
+      );
       expect(res.status).toBe(401);
     });
   });
 
   describe("GET /api/user/:userId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${process.env.TEST_API_BASE}/api/user/some-id`);
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/user/some-id`,
+      );
       expect(res.status).toBe(401);
     });
   });
 
   describe("POST /api/user/:userId/report (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${process.env.TEST_API_BASE}/api/user/some-id/report`,
         {
           method: "POST",

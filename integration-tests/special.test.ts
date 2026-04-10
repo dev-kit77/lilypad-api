@@ -6,6 +6,7 @@ import {
   deleteCurrentUser,
   deleteReport,
   promoteUserToAdminForTest,
+  fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
 
@@ -76,7 +77,40 @@ describe("Special (Reports) endpoints", () => {
 
   describe("GET /api/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${process.env.TEST_API_BASE}/api/special`);
+      const res = await fetchWithTimeout(`${process.env.TEST_API_BASE}/api/special`);
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("GET /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("PUT /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resolved: true, actionTaken: "warned" }),
+        },
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("DELETE /api/special/:reportId (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        { method: "DELETE" },
+      );
       expect(res.status).toBe(401);
     });
   });

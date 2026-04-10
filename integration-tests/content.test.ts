@@ -6,6 +6,7 @@ import {
   deletePost,
   deleteReport,
   promoteUserToAdminForTest,
+  fetchWithTimeout,
   type AuthSession,
 } from "./helpers/http";
 
@@ -32,14 +33,14 @@ describe("Content endpoints", () => {
 
   describe("GET /api/content (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content`);
+      const res = await fetchWithTimeout(`${base()}/api/content`);
       expect(res.status).toBe(401);
     });
   });
 
   describe("POST /api/content/post (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post`, {
+      const res = await fetchWithTimeout(`${base()}/api/content/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -53,14 +54,14 @@ describe("Content endpoints", () => {
 
   describe("GET /api/content/post/:postId/reply (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id/reply`);
+      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id/reply`);
       expect(res.status).toBe(401);
     });
   });
 
   describe("POST /api/content/post/:postId/reply (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id/reply`, {
+      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: "reply text" }),
@@ -71,14 +72,14 @@ describe("Content endpoints", () => {
 
   describe("GET /api/content/post/:postId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id`);
+      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id`);
       expect(res.status).toBe(401);
     });
   });
 
   describe("PUT /api/content/post/:postId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id`, {
+      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: "updated" }),
@@ -89,7 +90,7 @@ describe("Content endpoints", () => {
 
   describe("DELETE /api/content/post/:postId (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id`, {
+      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id`, {
         method: "DELETE",
       });
       expect(res.status).toBe(401);

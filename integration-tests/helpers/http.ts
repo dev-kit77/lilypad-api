@@ -1,3 +1,5 @@
+const DEFAULT_TIMEOUT_MS = 5000;
+
 function apiBase(): string {
   return (process.env.TEST_API_BASE ?? "http://127.0.0.1:3000").replace(
     /\/$/,
@@ -11,6 +13,14 @@ export function apiUrl(path: string): string {
   return `${apiBase()}/api${p}`;
 }
 
+export function fetchWithTimeout(
+  input: URL | Request | string,
+  init?: RequestInit,
+  timeout = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  return fetch(input, { ...init, signal: AbortSignal.timeout(timeout) });
+}
+
 export interface AuthSession {
   cookie: string;
   userId: string;
@@ -21,7 +31,7 @@ export async function signUp(
   password: string,
   name: string,
 ): Promise<AuthSession> {
-  const res = await fetch(apiUrl("/auth/sign-up/email"), {
+  const res = await fetchWithTimeout(apiUrl("/auth/sign-up/email"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, name }),
@@ -41,7 +51,7 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  const res = await fetch(apiUrl("/auth/sign-in/email"), {
+  const res = await fetchWithTimeout(apiUrl("/auth/sign-in/email"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -62,7 +72,7 @@ export function authedFetch(
   path: string,
   cookie: string,
   init: RequestInit = {},
-  timeout: number = 5000,
+  timeout: number = DEFAULT_TIMEOUT_MS,
 ): Promise<Response> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type")) {
@@ -119,7 +129,7 @@ export async function promoteUserToAdminForTest(userId: string): Promise<void> {
   if (!secret) {
     throw new Error("TEST_ADMIN_PROMOTE_SECRET is not set");
   }
-  const res = await fetch(apiUrl("/test/promote-admin"), {
+  const res = await fetchWithTimeout(apiUrl("/test/promote-admin"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
