@@ -1,40 +1,41 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
   signUp,
+  signIn,
   authedFetch,
   deleteCurrentUser,
+  deleteReport,
   promoteUserToAdminForTest,
   type AuthSession,
 } from "./helpers/http";
 
-const REPORTER_EMAIL = `reporter-${Date.now()}@test.com`;
-const REPORTER_PASSWORD = "password1234";
-const REPORTER_NAME = `reporter${Date.now()}`;
-
-const TARGET_EMAIL = `target-special-${Date.now()}@test.com`;
-const TARGET_PASSWORD = "password1234";
-const TARGET_NAME = `target${Date.now()}`;
-
-const ADMIN_EMAIL = `admin-special-${Date.now()}@test.com`;
-const ADMIN_PASSWORD = "password1234";
-const ADMIN_NAME = `adminspecial${Date.now()}`;
-
-let reporterSession: AuthSession;
-let targetSession: AuthSession;
-let adminSession: AuthSession;
-let reportId: string | null = null;
-
 describe("Special (Reports) endpoints", () => {
+  let reporterSession: AuthSession;
+  let targetSession: AuthSession;
+  let adminSession: AuthSession;
+  let reportId: string | null = null;
+
   beforeAll(async () => {
     reporterSession = await signUp(
-      REPORTER_EMAIL,
-      REPORTER_PASSWORD,
-      REPORTER_NAME,
+      `reporter-${Date.now()}@test.com`,
+      "password1234",
+      `reporter${Date.now()}`,
     );
-    targetSession = await signUp(TARGET_EMAIL, TARGET_PASSWORD, TARGET_NAME);
+    targetSession = await signUp(
+      `target-special-${Date.now()}@test.com`,
+      "password1234",
+      `target${Date.now()}`,
+    );
 
-    adminSession = await signUp(ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME);
+    const adminEmail = `admin-special-${Date.now()}@test.com`;
+    const adminPassword = "password1234";
+    adminSession = await signUp(
+      adminEmail,
+      adminPassword,
+      `adminspecial${Date.now()}`,
+    );
     await promoteUserToAdminForTest(adminSession.userId);
+    adminSession = await signIn(adminEmail, adminPassword);
 
     const reportRes = await authedFetch(
       `/user/${targetSession.userId}/report`,
@@ -48,9 +49,20 @@ describe("Special (Reports) endpoints", () => {
       },
     );
     expect(reportRes.status).toBe(200);
+
+    const reportsRes = await authedFetch("/special", adminSession.cookie);
+    const reportsBody = (await reportsRes.json()) as {
+      reports: Array<{ id: string }>;
+    };
+    if (reportsBody.reports.length > 0) {
+      reportId = reportsBody.reports[0]!.id;
+    }
   });
 
   afterAll(async () => {
+    if (reportId) {
+      await deleteReport(adminSession.cookie, reportId);
+    }
     if (reporterSession?.cookie) {
       await deleteCurrentUser(reporterSession.cookie);
     }

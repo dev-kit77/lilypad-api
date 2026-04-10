@@ -8,26 +8,28 @@ import {
   type AuthSession,
 } from "./helpers/http";
 
-const ADMIN_EMAIL = `admin-test-${Date.now()}@test.com`;
-const ADMIN_PASSWORD = "password1234";
-const ADMIN_NAME = `adminuser${Date.now()}`;
-
-const TARGET_EMAIL = `target-test-${Date.now()}@test.com`;
-const TARGET_PASSWORD = "password1234";
-const TARGET_NAME = `targetuser${Date.now()}`;
-
-let adminSession: AuthSession;
-let targetSession: AuthSession;
-
 const base = () => process.env.TEST_API_BASE!;
 
 describe("Admin endpoints", () => {
-  beforeAll(async () => {
-    targetSession = await signUp(TARGET_EMAIL, TARGET_PASSWORD, TARGET_NAME);
+  let adminSession: AuthSession;
+  let targetSession: AuthSession;
 
-    adminSession = await signUp(ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME);
+  beforeAll(async () => {
+    targetSession = await signUp(
+      `target-test-${Date.now()}@test.com`,
+      "password1234",
+      `targetuser${Date.now()}`,
+    );
+
+    const adminEmail = `admin-test-${Date.now()}@test.com`;
+    const adminPassword = "password1234";
+    adminSession = await signUp(
+      adminEmail,
+      adminPassword,
+      `adminuser${Date.now()}`,
+    );
     await promoteUserToAdminForTest(adminSession.userId);
-    adminSession = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+    adminSession = await signIn(adminEmail, adminPassword);
   });
 
   afterAll(async () => {

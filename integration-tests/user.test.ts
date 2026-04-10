@@ -3,18 +3,22 @@ import {
   signUp,
   authedFetch,
   deleteCurrentUser,
+  deleteReport,
+  promoteUserToAdminForTest,
   type AuthSession,
 } from "./helpers/http";
 
-const TEST_EMAIL = `user-test-${Date.now()}@test.com`;
 const TEST_PASSWORD = "password1234";
-const TEST_NAME = `testuser${Date.now()}`;
-
-let session: AuthSession;
 
 describe("User endpoints", () => {
+  let session: AuthSession;
+
   beforeAll(async () => {
-    session = await signUp(TEST_EMAIL, TEST_PASSWORD, TEST_NAME);
+    session = await signUp(
+      `user-test-${Date.now()}@test.com`,
+      TEST_PASSWORD,
+      `testuser${Date.now()}`,
+    );
   });
 
   afterAll(async () => {
@@ -84,50 +88,82 @@ describe("User endpoints", () => {
   });
 
   describe("GET /api/user/gdpr-sar (authenticated)", () => {
+    let reporterSession: AuthSession | null = null;
+    let adminSession: AuthSession | null = null;
+    let reportId: string | null = null;
+
+    afterAll(async () => {
+      if (reportId && adminSession?.cookie) {
+        await deleteReport(adminSession.cookie, reportId);
+      }
+      if (reporterSession?.cookie) {
+        await deleteCurrentUser(reporterSession.cookie);
+      }
+      if (adminSession?.cookie) {
+        await deleteCurrentUser(adminSession.cookie);
+      }
+    });
+
     it("returns 200 with downloadable JSON and anonymised reporters", async () => {
-      const reporter = await signUp(
+      reporterSession = await signUp(
         `reporter-${Date.now()}@test.com`,
         TEST_PASSWORD,
         `reporter${Date.now()}`,
       );
-      try {
-        await authedFetch(`/user/${session.userId}/report`, reporter.cookie, {
+      const adminEmail = `admin-gdpr-${Date.now()}@test.com`;
+      adminSession = await signUp(
+        adminEmail,
+        TEST_PASSWORD,
+        `admingdpr${Date.now()}`,
+      );
+      await promoteUserToAdminForTest(adminSession.userId);
+
+      await authedFetch(
+        `/user/${session.userId}/report`,
+        reporterSession.cookie,
+        {
           method: "POST",
           body: JSON.stringify({
             reason: "spam",
             content: "SAR anonymisation test",
           }),
-        });
+        },
+      );
 
-        const res = await authedFetch("/user/gdpr-sar", session.cookie);
-        expect(res.status).toBe(200);
-
-        const disposition = res.headers.get("content-disposition") ?? "";
-        expect(disposition).toContain("attachment;");
-        expect(disposition).toContain("lilypad-gdpr-sar-");
-
-        const body = (await res.json()) as Record<string, unknown>;
-        expect(body).toHaveProperty("generatedAt");
-        expect(body).toHaveProperty("requestType");
-        expect(body).toHaveProperty("user");
-        expect(body).toHaveProperty("reportsAgainstUser");
-
-        const user = body.user as Record<string, unknown>;
-        expect(user.id).toBe(session.userId);
-
-        const reportsAgainstUser = body.reportsAgainstUser as Array<
-          Record<string, unknown>
-        >;
-        expect(reportsAgainstUser.length).toBeGreaterThan(0);
-        const firstReport = reportsAgainstUser[0];
-        if (!firstReport) {
-          throw new Error("Expected at least one report in reportsAgainstUser");
-        }
-        expect(firstReport).not.toHaveProperty("userID");
-        expect(firstReport.reporter).toBe("ANONYMISED");
-      } finally {
-        await deleteCurrentUser(reporter.cookie);
+      const reportsRes = await authedFetch("/special", adminSession.cookie);
+      const reportsBody = (await reportsRes.json()) as {
+        reports: Array<{ id: string }>;
+      };
+      if (reportsBody.reports.length > 0) {
+        reportId = reportsBody.reports[0]!.id;
       }
+
+      const res = await authedFetch("/user/gdpr-sar", session.cookie);
+      expect(res.status).toBe(200);
+
+      const disposition = res.headers.get("content-disposition") ?? "";
+      expect(disposition).toContain("attachment;");
+      expect(disposition).toContain("lilypad-gdpr-sar-");
+
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("generatedAt");
+      expect(body).toHaveProperty("requestType");
+      expect(body).toHaveProperty("user");
+      expect(body).toHaveProperty("reportsAgainstUser");
+
+      const user = body.user as Record<string, unknown>;
+      expect(user.id).toBe(session.userId);
+
+      const reportsAgainstUser = body.reportsAgainstUser as Array<
+        Record<string, unknown>
+      >;
+      expect(reportsAgainstUser.length).toBeGreaterThan(0);
+      const firstReport = reportsAgainstUser[0];
+      if (!firstReport) {
+        throw new Error("Expected at least one report in reportsAgainstUser");
+      }
+      expect(firstReport).not.toHaveProperty("userID");
+      expect(firstReport.reporter).toBe("ANONYMISED");
     });
   });
 
@@ -186,7 +222,11 @@ describe("User endpoints", () => {
         );
         expect(signInRes.ok).toBeFalse();
 
-        const recreated = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
+        const recreated = await signUp(
+          deletedEmail,
+          TEST_PASSWORD,
+          deletedName,
+        );
         expect(recreated.userId).toBeDefined();
         await deleteCurrentUser(recreated.cookie);
       } finally {

@@ -3,20 +3,25 @@ import {
   signUp,
   authedFetch,
   deleteCurrentUser,
+  deletePost,
+  deleteReport,
+  promoteUserToAdminForTest,
   type AuthSession,
 } from "./helpers/http";
 
-const TEST_EMAIL = `content-test-${Date.now()}@test.com`;
 const TEST_PASSWORD = "password1234";
-const TEST_NAME = `contentuser${Date.now()}`;
 
 const base = () => process.env.TEST_API_BASE!;
 
-let session: AuthSession;
-
 describe("Content endpoints", () => {
+  let session: AuthSession;
+
   beforeAll(async () => {
-    session = await signUp(TEST_EMAIL, TEST_PASSWORD, TEST_NAME);
+    session = await signUp(
+      `content-test-${Date.now()}@test.com`,
+      TEST_PASSWORD,
+      `contentuser${Date.now()}`,
+    );
   });
 
   afterAll(async () => {
@@ -141,6 +146,14 @@ describe("Content endpoints", () => {
   });
 
   describe("GET /api/content/post/:postId (authenticated)", () => {
+    let createdPostId: string | null = null;
+
+    afterAll(async () => {
+      if (createdPostId) {
+        await deletePost(session.cookie, createdPostId);
+      }
+    });
+
     it("returns 404 for a non-existent post", async () => {
       const res = await authedFetch(
         "/content/post/non-existent-id",
@@ -163,21 +176,29 @@ describe("Content endpoints", () => {
       const contentBody = (await contentRes.json()) as {
         posts: Array<{ id: string }>;
       };
-      const postId = contentBody.posts[0]!.id;
+      createdPostId = contentBody.posts[0]!.id;
 
       const getRes = await authedFetch(
-        `/content/post/${postId}`,
+        `/content/post/${createdPostId}`,
         session.cookie,
       );
       expect(getRes.status).toBe(200);
 
       const getBody = (await getRes.json()) as Record<string, unknown>;
       expect(getBody).toHaveProperty("post");
-      expect((getBody.post as Record<string, unknown>).id).toBe(postId);
+      expect((getBody.post as Record<string, unknown>).id).toBe(createdPostId);
     });
   });
 
   describe("PUT /api/content/post/:postId (authenticated)", () => {
+    let createdPostId: string | null = null;
+
+    afterAll(async () => {
+      if (createdPostId) {
+        await deletePost(session.cookie, createdPostId);
+      }
+    });
+
     it("returns 200 when updating own post", async () => {
       const createRes = await authedFetch("/content/post", session.cookie, {
         method: "POST",
@@ -192,10 +213,10 @@ describe("Content endpoints", () => {
       const contentBody = (await contentRes.json()) as {
         posts: Array<{ id: string }>;
       };
-      const postId = contentBody.posts[0]!.id;
+      createdPostId = contentBody.posts[0]!.id;
 
       const updateRes = await authedFetch(
-        `/content/post/${postId}`,
+        `/content/post/${createdPostId}`,
         session.cookie,
         {
           method: "PUT",
@@ -256,6 +277,22 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post/:postId (report)", () => {
+    let createdPostId: string | null = null;
+    let reportId: string | null = null;
+    let adminSession: AuthSession | null = null;
+
+    afterAll(async () => {
+      if (reportId && adminSession?.cookie) {
+        await deleteReport(adminSession.cookie, reportId);
+      }
+      if (createdPostId) {
+        await deletePost(session.cookie, createdPostId);
+      }
+      if (adminSession?.cookie) {
+        await deleteCurrentUser(adminSession.cookie);
+      }
+    });
+
     it("returns 200 when reporting a post", async () => {
       const createRes = await authedFetch("/content/post", session.cookie, {
         method: "POST",
@@ -270,10 +307,10 @@ describe("Content endpoints", () => {
       const contentBody = (await contentRes.json()) as {
         posts: Array<{ id: string }>;
       };
-      const postId = contentBody.posts[0]!.id;
+      createdPostId = contentBody.posts[0]!.id;
 
       const reportRes = await authedFetch(
-        `/content/post/${postId}`,
+        `/content/post/${createdPostId}`,
         session.cookie,
         {
           method: "POST",
@@ -286,24 +323,36 @@ describe("Content endpoints", () => {
       expect(reportRes.status).toBe(200);
       const reportBody = (await reportRes.json()) as Record<string, unknown>;
       expect(reportBody.status).toBe("OK");
+
+      const adminEmail = `admin-post-report-${Date.now()}@test.com`;
+      adminSession = await signUp(
+        adminEmail,
+        "password1234",
+        `adminpostreport${Date.now()}`,
+      );
+      await promoteUserToAdminForTest(adminSession.userId);
+
+      const reportsRes = await authedFetch("/special", adminSession.cookie);
+      const reportsBody = (await reportsRes.json()) as {
+        reports: Array<{ id: string }>;
+      };
+      if (reportsBody.reports.length > 0) {
+        reportId = reportsBody.reports[0]!.id;
+      }
     });
   });
 
   describe("Cross-user authorization", () => {
     let otherUserSession: AuthSession;
-    let otherUserEmail: string;
-    let otherUserPassword: string;
-    let otherUserName: string;
-    let userAPostId: string;
+    let userAPostId: string | null = null;
+    let adminSession: AuthSession | null = null;
+    let reportId: string | null = null;
 
     beforeAll(async () => {
-      otherUserEmail = `other-${Date.now()}@test.com`;
-      otherUserPassword = "password1234";
-      otherUserName = `otheruser${Date.now()}`;
       otherUserSession = await signUp(
-        otherUserEmail,
-        otherUserPassword,
-        otherUserName,
+        `other-${Date.now()}@test.com`,
+        "password1234",
+        `otheruser${Date.now()}`,
       );
 
       const createRes = await authedFetch("/content/post", session.cookie, {
@@ -323,8 +372,17 @@ describe("Content endpoints", () => {
     });
 
     afterAll(async () => {
+      if (userAPostId) {
+        await deletePost(session.cookie, userAPostId);
+      }
+      if (reportId && adminSession?.cookie) {
+        await deleteReport(adminSession.cookie, reportId);
+      }
       if (otherUserSession?.cookie) {
         await deleteCurrentUser(otherUserSession.cookie);
+      }
+      if (adminSession?.cookie) {
+        await deleteCurrentUser(adminSession.cookie);
       }
     });
 
@@ -370,6 +428,22 @@ describe("Content endpoints", () => {
         },
       );
       expect(res.status).toBe(200);
+
+      const adminEmail = `admin-cross-${Date.now()}@test.com`;
+      adminSession = await signUp(
+        adminEmail,
+        "password1234",
+        `admincross${Date.now()}`,
+      );
+      await promoteUserToAdminForTest(adminSession.userId);
+
+      const reportsRes = await authedFetch("/special", adminSession.cookie);
+      const reportsBody = (await reportsRes.json()) as {
+        reports: Array<{ id: string }>;
+      };
+      if (reportsBody.reports.length > 0) {
+        reportId = reportsBody.reports[0]!.id;
+      }
     });
 
     it("user B can reply to user A's post", async () => {

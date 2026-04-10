@@ -13,8 +13,7 @@ process.env.TEST_API_BASE = (
 
 // Must match the API container (see docker-compose TEST_ADMIN_PROMOTE_SECRET).
 if (!process.env.TEST_ADMIN_PROMOTE_SECRET?.trim()) {
-  process.env.TEST_ADMIN_PROMOTE_SECRET =
-    "lilypad-local-test-promote-only";
+  process.env.TEST_ADMIN_PROMOTE_SECRET = "lilypad-local-test-promote-only";
 }
 
 const base = process.env.TEST_API_BASE;

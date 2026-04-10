@@ -79,6 +79,32 @@ export async function deleteCurrentUser(cookie: string): Promise<void> {
   }
 }
 
+/** Deletes a post by ID. */
+export async function deletePost(
+  cookie: string,
+  postId: string,
+): Promise<void> {
+  const res = await authedFetch(`/content/post/${postId}`, cookie, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 404) {
+    console.warn(`[test] DELETE /content/post/${postId} failed: ${res.status}`);
+  }
+}
+
+/** Deletes a report by ID (admin only). */
+export async function deleteReport(
+  cookie: string,
+  reportId: string,
+): Promise<void> {
+  const res = await authedFetch(`/special/${reportId}`, cookie, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 404) {
+    console.warn(`[test] DELETE /special/${reportId} failed: ${res.status}`);
+  }
+}
+
 /**
  * Promotes a user to admin via POST /api/test/promote-admin (runs in the API process).
  * Requires TEST_ADMIN_PROMOTE_SECRET on both the server and the test runner (see test/setup.ts).
