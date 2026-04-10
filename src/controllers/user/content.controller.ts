@@ -88,6 +88,11 @@ export const contentController = new Elysia()
       try {
         const { lat, lon } = body.locality;
 
+        if (body.content.trim().length === 0) {
+          set.status = 400;
+          return { error: ERROR_CODES.INVALID_FIELD };
+        }
+
         // geog type is Unsupported in Prisma so all location reads/writes use raw SQL
         log.out(
           `Querying geolocation: lat=${lat}, lon=${lon}`,
@@ -248,6 +253,11 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
+      if (body.content.trim().length === 0 || body.reason.trim().length === 0) {
+        set.status = 400;
+        return { error: ERROR_CODES.INVALID_FIELD };
+      }
+
       try {
         log.out(`Creating Report for ${params.postId}`, "user-controller");
         const report = await prisma.report.create({
@@ -305,6 +315,12 @@ export const contentController = new Elysia()
         `POST request at /content/post/${params.postId}/reply`,
         "content-controller",
       );
+
+      if (body.content.trim().length === 0) {
+        set.status = 400;
+        return { error: ERROR_CODES.INVALID_FIELD };
+      }
+
       try {
         log.out(
           `Finding parent post: CUID=${params.postId}`,
@@ -396,6 +412,11 @@ export const contentController = new Elysia()
         `PUT request at /content/post/${params.postId}`,
         "content-controller",
       );
+
+      if (body.content.trim().length === 0) {
+        set.status = 400;
+        return { error: ERROR_CODES.INVALID_FIELD };
+      }
 
       try {
         log.out(
@@ -724,16 +745,18 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      return replies.map((post) => ({
-        id: post.CUID,
-        content: post.content,
-        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-        time: post.time,
-        ...(post.updated ? { updated: post.updated } : {}),
-        upvotes: post._count.upvotes,
-        replyCount: post._count.postReplies,
-      }));
+      return {
+        replies: replies.map((post) => ({
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        })),
+      };
     },
     {
       auth: true,

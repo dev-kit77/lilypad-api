@@ -50,8 +50,8 @@ export const spatialContentGetResponse = {
 export const postCreateBody = t.Object({
   content: t.String({ minLength: 1 }),
   locality: t.Object({
-    lat: t.Number(),
-    lon: t.Number(),
+    lat: t.Number({ minimum: -90, maximum: 90 }),
+    lon: t.Number({ minimum: -180, maximum: 180 }),
   }),
 });
 
@@ -101,11 +101,11 @@ export const postReplyResponse = {
 };
 
 export const postRepliesResponse = {
-  200: t.Array(postItem),
+  200: t.Object({ replies: t.Array(postItem) }),
   404: t.Object({ error: t.String() }),
 };
 
 export const feedSpatialQuery = t.Object({
-  lat: t.Numeric(),
-  lon: t.Numeric(),
+  lat: t.Number({ minimum: -90, maximum: 90 }),
+  lon: t.Number({ minimum: -180, maximum: 180 }),
 });

@@ -1,54 +1,42 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
-  signUp,
-  signIn,
   authedFetch,
   deleteCurrentUser,
-  promoteUserToAdminForTest,
+  fetchWithTimeout,
+  trackForCleanup,
+  cleanupAll,
   type AuthSession,
 } from "./helpers/http";
-
-const ADMIN_EMAIL = `admin-test-${Date.now()}@test.com`;
-const ADMIN_PASSWORD = "password1234";
-const ADMIN_NAME = `adminuser${Date.now()}`;
-
-const TARGET_EMAIL = `target-test-${Date.now()}@test.com`;
-const TARGET_PASSWORD = "password1234";
-const TARGET_NAME = `targetuser${Date.now()}`;
-
-let adminSession: AuthSession;
-let targetSession: AuthSession;
-
-const base = () => process.env.TEST_API_BASE!;
+import { createTestUser, createTestAdmin } from "./helpers/factory";
+import { apiBase } from "./helpers/http";
 
 describe("Admin endpoints", () => {
-  beforeAll(async () => {
-    targetSession = await signUp(TARGET_EMAIL, TARGET_PASSWORD, TARGET_NAME);
+  let adminSession: AuthSession;
+  let targetSession: AuthSession;
 
-    adminSession = await signUp(ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME);
-    await promoteUserToAdminForTest(adminSession.userId);
-    adminSession = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+  beforeAll(async () => {
+    targetSession = await createTestUser("target-test");
+    adminSession = await createTestAdmin();
+    trackForCleanup({ type: "user", id: targetSession.userId, cookie: targetSession.cookie });
+    trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
   });
 
   afterAll(async () => {
-    if (targetSession?.cookie) {
-      await deleteCurrentUser(targetSession.cookie);
-    }
-    if (adminSession?.cookie) {
-      await deleteCurrentUser(adminSession.cookie);
-    }
+    await cleanupAll();
   });
 
   describe("GET /api/content/user/:userId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/user/some-id/special`);
+      const res = await fetchWithTimeout(
+        `${apiBase()}/api/content/user/some-id/special`,
+      );
       expect(res.status).toBe(401);
     });
   });
 
   describe("PUT /api/user/:userId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/user/some-id/special`, {
+      const res = await fetchWithTimeout(`${apiBase()}/api/user/some-id/special`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: true }),
@@ -104,6 +92,13 @@ describe("Admin endpoints", () => {
   });
 
   describe("PUT /api/user/:userId/special (admin) — ban", () => {
+    let banTestSession: AuthSession;
+
+    beforeAll(async () => {
+      banTestSession = await createTestUser("bantest");
+      trackForCleanup({ type: "user", id: banTestSession.userId, cookie: banTestSession.cookie });
+    });
+
     it("returns 200 when banning a user with a time-limited ban", async () => {
       const res = await authedFetch(
         `/user/${targetSession.userId}/special`,
@@ -143,11 +138,43 @@ describe("Admin endpoints", () => {
       );
       expect(res.status).toBe(404);
     });
+
+    it("banned user cannot access authenticated endpoints", async () => {
+      const banRes = await authedFetch(
+        `/user/${banTestSession.userId}/special`,
+        adminSession.cookie,
+        {
+          method: "PUT",
+          body: JSON.stringify({ active: true }),
+        },
+      );
+      expect(banRes.status).toBe(200);
+
+      const accessRes = await authedFetch("/user", banTestSession.cookie);
+      expect(accessRes.status).toBe(403);
+      const accessBody = (await accessRes.json()) as Record<string, unknown>;
+      expect(accessBody.error).toBe("USER_BANNED");
+    });
+
+    it("unbanned user can access authenticated endpoints again", async () => {
+      const unbanRes = await authedFetch(
+        `/user/${banTestSession.userId}/special`,
+        adminSession.cookie,
+        {
+          method: "PUT",
+          body: JSON.stringify({ active: false }),
+        },
+      );
+      expect(unbanRes.status).toBe(200);
+
+      const accessRes = await authedFetch("/user", banTestSession.cookie);
+      expect(accessRes.status).toBe(200);
+    });
   });
 
   describe("PUT /api/content/post/:postId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id/special`, {
+      const res = await fetch(`${apiBase()}/api/content/post/some-id/special`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hidden: true }),
@@ -250,7 +277,7 @@ describe("Admin endpoints", () => {
 
   describe("GET /api/content/post/:postId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id/special`);
+      const res = await fetch(`${apiBase()}/api/content/post/some-id/special`);
       expect(res.status).toBe(401);
     });
   });
