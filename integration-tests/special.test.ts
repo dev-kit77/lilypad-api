@@ -96,7 +96,9 @@ describe("Special (Reports) endpoints", () => {
 
   describe("GET /api/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(`${process.env.TEST_API_BASE}/api/special`);
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/special`,
+      );
       expect(res.status).toBe(401);
     });
   });
@@ -284,7 +286,7 @@ describe("Special (Reports) endpoints", () => {
   describe("DELETE /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetch(
-        `${process.env.TEST_API_BASE}/api/special/${reportId ?? "some-id"}`,
+        `${process.env.TEST_API_BASE}/api/special/${createdReport?.id ?? "some-id"}`,
         { method: "DELETE" },
       );
       expect(res.status).toBe(401);
@@ -294,7 +296,7 @@ describe("Special (Reports) endpoints", () => {
   describe("DELETE /api/special/:reportId (non-admin)", () => {
     it("returns 403 for a regular user", async () => {
       const res = await authedFetch(
-        `/special/${reportId}`,
+        `/special/${createdReport?.id ?? "some-id"}`,
         reporterSession.cookie,
         { method: "DELETE" },
       );
@@ -305,7 +307,7 @@ describe("Special (Reports) endpoints", () => {
   describe("DELETE /api/special/:reportId (admin, valid ID)", () => {
     it("returns 200 when deleting a report", async () => {
       const res = await authedFetch(
-        `/special/${reportId}`,
+        `/special/${createdReport?.id ?? "some-id"}`,
         adminSession.cookie,
         { method: "DELETE" },
       );

@@ -54,18 +54,23 @@ describe("Content endpoints", () => {
 
   describe("GET /api/content/post/:postId/reply (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id/reply`);
+      const res = await fetchWithTimeout(
+        `${base()}/api/content/post/some-id/reply`,
+      );
       expect(res.status).toBe(401);
     });
   });
 
   describe("POST /api/content/post/:postId/reply (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(`${base()}/api/content/post/some-id/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: "reply text" }),
-      });
+      const res = await fetchWithTimeout(
+        `${base()}/api/content/post/some-id/reply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: "reply text" }),
+        },
+      );
       expect(res.status).toBe(401);
     });
   });
@@ -111,6 +116,14 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post (authenticated)", () => {
+    let createdPostIds: string[] = [];
+
+    afterAll(async () => {
+      for (const postId of createdPostIds) {
+        await deletePost(session.cookie, postId);
+      }
+    });
+
     it("returns 200 with post object when creating a post", async () => {
       const res = await authedFetch("/content/post", session.cookie, {
         method: "POST",
@@ -121,6 +134,7 @@ describe("Content endpoints", () => {
       });
       expect(res.status).toBe(200);
       const body = (await res.json()) as { post: { id: string } };
+      createdPostIds.push(body.post.id);
       expect(body.post).toHaveProperty("id");
       expect(body.post).toHaveProperty("content");
     });
@@ -174,13 +188,7 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      const postId = createBody.post.id;
-
-      const contentRes = await authedFetch("/content", session.cookie);
-      const contentBody = (await contentRes.json()) as {
-        posts: Array<{ id: string }>;
-      };
-      createdPostId = contentBody.posts[0]!.id;
+      createdPostId = createBody.post.id;
 
       const getRes = await authedFetch(
         `/content/post/${createdPostId}`,
@@ -213,13 +221,7 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      const postId = createBody.post.id;
-
-      const contentRes = await authedFetch("/content", session.cookie);
-      const contentBody = (await contentRes.json()) as {
-        posts: Array<{ id: string }>;
-      };
-      createdPostId = contentBody.posts[0]!.id;
+      createdPostId = createBody.post.id;
 
       const updateRes = await authedFetch(
         `/content/post/${createdPostId}`,
@@ -261,9 +263,13 @@ describe("Content endpoints", () => {
       const createBody = (await createRes.json()) as { post: { id: string } };
       const postId = createBody.post.id;
 
-      const deleteRes = await authedFetch(`/content/post/${postId}`, session.cookie, {
-        method: "DELETE",
-      });
+      const deleteRes = await authedFetch(
+        `/content/post/${postId}`,
+        session.cookie,
+        {
+          method: "DELETE",
+        },
+      );
       expect(deleteRes.status).toBe(200);
     });
 
@@ -278,19 +284,11 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post/:postId (report)", () => {
-    let createdPostId: string | null = null;
-    let reportId: string | null = null;
-    let adminSession: AuthSession | null = null;
+    let postId: string | null = null;
 
     afterAll(async () => {
-      if (reportId && adminSession?.cookie) {
-        await deleteReport(adminSession.cookie, reportId);
-      }
-      if (createdPostId) {
-        await deletePost(session.cookie, createdPostId);
-      }
-      if (adminSession?.cookie) {
-        await deleteCurrentUser(adminSession.cookie);
+      if (postId) {
+        await deletePost(session.cookie, postId);
       }
     });
 
@@ -304,17 +302,10 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      const postId = createBody.post.id;
-
-<<<<<<< HEAD
-      const contentRes = await authedFetch("/content", session.cookie);
-      const contentBody = (await contentRes.json()) as {
-        posts: Array<{ id: string }>;
-      };
-      createdPostId = contentBody.posts[0]!.id;
+      postId = createBody.post.id;
 
       const reportRes = await authedFetch(
-        `/content/post/${createdPostId}`,
+        `/content/post/${postId}`,
         session.cookie,
         {
           method: "POST",
@@ -325,39 +316,11 @@ describe("Content endpoints", () => {
         },
       );
       expect(reportRes.status).toBe(200);
-      const reportBody = (await reportRes.json()) as Record<string, unknown>;
-      expect(reportBody.status).toBe("OK");
-
-      const adminEmail = `admin-post-report-${Date.now()}@test.com`;
-      adminSession = await signUp(
-        adminEmail,
-        "password1234",
-        `adminpostreport${Date.now()}`,
-      );
-      await promoteUserToAdminForTest(adminSession.userId);
-
-      const reportsRes = await authedFetch("/special", adminSession.cookie);
-      const reportsBody = (await reportsRes.json()) as {
-        reports: Array<{ id: string }>;
-      };
-      if (reportsBody.reports.length > 0) {
-        reportId = reportsBody.reports[0]!.id;
-      }
-=======
-      const reportRes = await authedFetch(`/content/post/${postId}`, session.cookie, {
-        method: "POST",
-        body: JSON.stringify({
-          reason: "spam",
-          content: "This is spam",
-        }),
-      });
-      expect(reportRes.status).toBe(200);
       const reportBody = (await reportRes.json()) as {
         report: { id: string; reason: string };
       };
       expect(reportBody.report).toHaveProperty("id");
       expect(reportBody.report).toHaveProperty("reason");
->>>>>>> 7d6c11e482fb94012aaf21edac27e291da087b99
     });
   });
 
