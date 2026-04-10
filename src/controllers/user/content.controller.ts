@@ -101,10 +101,10 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      let existing: { CUID: string }[];
+      let existing: { CUID: string };
 
       try {
-        existing = await prisma.$queryRaw<{ CUID: string }[]>`
+        existing = await prisma.$queryRaw<{ CUID: string }>`
                   SELECT "CUID" FROM "location"
                   WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
                   LIMIT 1`;
@@ -116,12 +116,13 @@ export const contentController = new Elysia()
 
       let locationCUID: string;
 
-      if (existing.length > 0 && existing[0]) {
+      if (existing) {
         log.success(
-          `Found existing location: CUID=${existing[0].CUID}`,
+          `Found existing location: CUID=${existing.CUID}`,
           "content-controller",
         );
-        locationCUID = existing[0].CUID;
+
+        locationCUID = existing.CUID;
       } else {
         locationCUID = createId();
         log.out(
@@ -129,18 +130,40 @@ export const contentController = new Elysia()
           "content-controller",
         );
 
+        let newLocation: { CUID: string } | null = null;
+
         try {
           await prisma.$executeRaw`
                       INSERT INTO "location" ("CUID", "geog")
                       VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography)
                       ON CONFLICT DO NOTHING
-                      RETURNING "CUID"
                   `;
+          //reprompt in case of race condition
+          newLocation = await prisma.$queryRaw<{ CUID: string }>`
+                    SELECT "CUID" FROM "location"
+                    WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
+                    LIMIT 1`;
         } catch (e) {
           set.status = 500;
-          log.err(500, `Failed to create location: ${e}`, "content-controller");
+          log.err(
+            500,
+            `Failed to create new location: ${e}`,
+            "content-controller",
+          );
           return { error: ERROR_CODES.INTERNAL_SERVER };
         }
+
+        if (!newLocation) {
+          set.status = 500;
+          log.err(
+            500,
+            `Location creation failed: newLocation is null`,
+            "content-controller",
+          );
+          return { error: ERROR_CODES.INTERNAL_SERVER };
+        }
+
+        locationCUID = newLocation.CUID;
 
         log.success(
           `Created new location: CUID=${locationCUID}`,
@@ -559,7 +582,7 @@ export const contentController = new Elysia()
         set.status = 404;
         log.err(404, `Post not found: ${params.postId}`, "content-controller");
         return { error: ERROR_CODES.INVALID_ID };
-      } else if (existing.upvotes.some((u) => u.id === user.id)) {
+      } else if (existing.upvotes.find((u) => u.id === user.id)) {
         log.out(
           `Upvoting post ${params.postId} from ${user.id}`,
           "content-controller",
@@ -572,7 +595,7 @@ export const contentController = new Elysia()
             },
             data: {
               upvotes: {
-                disconnect: user,
+                disconnect: { id: user.id },
               },
             },
           })
@@ -583,7 +606,7 @@ export const contentController = new Elysia()
               },
               data: {
                 upvotes: {
-                  connect: user,
+                  connect: { id: user.id },
                 },
               },
             });
@@ -601,7 +624,7 @@ export const contentController = new Elysia()
             },
             data: {
               upvotes: {
-                connect: user,
+                connect: { id: user.id },
               },
             },
           })
@@ -612,7 +635,7 @@ export const contentController = new Elysia()
               },
               data: {
                 upvotes: {
-                  disconnect: user,
+                  disconnect: { id: user.id },
                 },
               },
             });
