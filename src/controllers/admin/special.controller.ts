@@ -6,6 +6,7 @@ import {
   getReportsResponse,
   updateReportBody,
   updateReportResponse,
+  deleteReportResponse,
 } from "../../models/controllers/admin.models";
 import { log } from "../../../lib/log";
 import { ERROR_CODES } from "../../models/controllers/error-codes.models";
@@ -187,7 +188,7 @@ export const specialController = (app: Elysia) =>
       },
       {
         auth: "admin",
-        response: updateReportResponse,
+        response: deleteReportResponse,
         detail: {
           description: "Delete a report by its CUID.",
           tags: ["Content"],
