@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { auth } from "./auth";
 import { log } from "../log";
 import { prisma } from "../prisma";
-import { ERROR_CODES } from "../../src/models/controllers/error-codes.models";
+import { ERROR_CODES } from "../../src/models/error.models";
 
 export const authPlugin = new Elysia({ name: "better-auth" }).macro({
   auth(value: true | string) {
@@ -21,7 +21,7 @@ export const authPlugin = new Elysia({ name: "better-auth" }).macro({
             banExpires: true,
           },
         });
-        
+
         if (!dbUser) {
           log.err(401, `Unauthorised: Session user not found`, "core");
           return status(401);

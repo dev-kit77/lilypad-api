@@ -4,9 +4,9 @@ import { authPlugin } from "../../../lib/auth/auth.plugin";
 import {
   spatialContentGetResponse,
   feedSpatialQuery,
-} from "../../models/controllers/content.models";
+} from "../../models/content.models";
 import { log } from "../../../lib/log";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+import { ERROR_CODES } from "../../models/error.models";
 
 export const contentController = new Elysia().use(authPlugin).get(
   "/feed-spatial",

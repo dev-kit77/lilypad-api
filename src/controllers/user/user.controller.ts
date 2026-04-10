@@ -8,8 +8,8 @@ import {
   userPublicGetResponse,
   userReportBody,
   userReportResponse,
-} from "../../models/controllers/user.models";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+} from "../../models/user.models";
+import { ERROR_CODES } from "../../models/error.models";
 import { prisma } from "../../../lib/prisma";
 import { authPlugin } from "../../../lib/auth/auth.plugin";
 import { log } from "../../../lib/log";

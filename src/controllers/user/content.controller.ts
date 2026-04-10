@@ -16,8 +16,8 @@ import {
   postRepliesResponse,
   postResponse,
   postUpvoteResponse,
-} from "../../models/controllers/content.models";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+} from "../../models/content.models";
+import { ERROR_CODES } from "../../models/error.models";
 import { log } from "../../../lib/log";
 
 /**

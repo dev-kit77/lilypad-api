@@ -7,9 +7,9 @@ import {
   updateReportBody,
   updateReportResponse,
   deleteReportResponse,
-} from "../../models/controllers/admin.models";
+} from "../../models/admin.models";
 import { log } from "../../../lib/log";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+import { ERROR_CODES } from "../../models/error.models";
 
 export const specialController = (app: Elysia) =>
   app

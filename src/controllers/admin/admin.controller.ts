@@ -5,12 +5,9 @@ import {
   postToggleResponse,
   userBanBody,
   userBanResponse,
-} from "../../models/controllers/admin.models";
-import {
-  contentResponse,
-  postResponse,
-} from "../../models/controllers/content.models";
-import { ERROR_CODES } from "../../models/controllers/error-codes.models";
+} from "../../models/admin.models";
+import { contentResponse, postResponse } from "../../models/content.models";
+import { ERROR_CODES } from "../../models/error.models";
 import { log } from "../../../lib/log";
 
 export const adminController = new Elysia()
