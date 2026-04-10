@@ -156,7 +156,9 @@ describe("Admin endpoints", () => {
       expect(banRes.status).toBe(200);
 
       const accessRes = await authedFetch("/user", banTestSession.cookie);
-      expect(accessRes.status).toBe(401);
+      expect(accessRes.status).toBe(403);
+      const accessBody = (await accessRes.json()) as Record<string, unknown>;
+      expect(accessBody.error).toBe("USER_BANNED");
     });
 
     it("unbanned user can access authenticated endpoints again", async () => {
