@@ -1,6 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 5000;
 
-function apiBase(): string {
+export function apiBase(): string {
   return (process.env.TEST_API_BASE ?? "http://127.0.0.1:3000").replace(
     /\/$/,
     "",

@@ -8,8 +8,7 @@ import {
   type AuthSession,
 } from "./helpers/http";
 import { createTestUser, createTestAdmin } from "./helpers/factory";
-
-const base = () => process.env.TEST_API_BASE!;
+import { apiBase } from "./helpers/http";
 
 describe("Admin endpoints", () => {
   let adminSession: AuthSession;
@@ -29,7 +28,7 @@ describe("Admin endpoints", () => {
   describe("GET /api/content/user/:userId/special (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${base()}/api/content/user/some-id/special`,
+        `${apiBase()}/api/content/user/some-id/special`,
       );
       expect(res.status).toBe(401);
     });
@@ -37,7 +36,7 @@ describe("Admin endpoints", () => {
 
   describe("PUT /api/user/:userId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetchWithTimeout(`${base()}/api/user/some-id/special`, {
+      const res = await fetchWithTimeout(`${apiBase()}/api/user/some-id/special`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: true }),
@@ -175,7 +174,7 @@ describe("Admin endpoints", () => {
 
   describe("PUT /api/content/post/:postId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id/special`, {
+      const res = await fetch(`${apiBase()}/api/content/post/some-id/special`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hidden: true }),
@@ -278,7 +277,7 @@ describe("Admin endpoints", () => {
 
   describe("GET /api/content/post/:postId/special (unauthenticated)", () => {
     it("returns 401", async () => {
-      const res = await fetch(`${base()}/api/content/post/some-id/special`);
+      const res = await fetch(`${apiBase()}/api/content/post/some-id/special`);
       expect(res.status).toBe(401);
     });
   });

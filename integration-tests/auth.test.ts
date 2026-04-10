@@ -4,6 +4,7 @@ import {
   signIn,
   fetchWithTimeout,
   deleteCurrentUser,
+  apiBase,
 } from "./helpers/http";
 import { createTestUser, TEST_PASSWORD } from "./helpers/factory";
 
@@ -18,7 +19,7 @@ describe("Auth endpoints", () => {
 
     it("returns 400 (VALIDATION_ERROR) when missing email", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -34,7 +35,7 @@ describe("Auth endpoints", () => {
     it("returns 400 (VALIDATION_ERROR) when missing password", async () => {
       const session = await createTestUser("authpwdtest");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -51,7 +52,7 @@ describe("Auth endpoints", () => {
     it("returns 400 (VALIDATION_ERROR) when missing name", async () => {
       const session = await createTestUser("authtestname");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -71,7 +72,7 @@ describe("Auth endpoints", () => {
       const session = await signUp(email, TEST_PASSWORD, `firstuser`);
 
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -88,7 +89,7 @@ describe("Auth endpoints", () => {
 
     it("returns 400 (PASSWORD_TOO_SHORT) when password too short", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -104,7 +105,7 @@ describe("Auth endpoints", () => {
 
     it("returns 400 when email is invalid format", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -120,7 +121,7 @@ describe("Auth endpoints", () => {
 
     it("returns 400 when name is empty string", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -136,7 +137,7 @@ describe("Auth endpoints", () => {
 
     it("returns 400 when name exceeds reasonable length", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        `${apiBase()}/api/auth/sign-up/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -156,7 +157,7 @@ describe("Auth endpoints", () => {
       const email = `signin${Date.now()}${Math.random().toString(36).slice(2)}@test.com`;
       const session = await signUp(email, TEST_PASSWORD, "authsignin");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -175,7 +176,7 @@ describe("Auth endpoints", () => {
 
     it("returns 400 (VALIDATION_ERROR) when missing email", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -192,7 +193,7 @@ describe("Auth endpoints", () => {
     it("returns 400 (VALIDATION_ERROR) when missing password", async () => {
       const session = await createTestUser("authsigninpwd");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -209,7 +210,7 @@ describe("Auth endpoints", () => {
 
     it("returns 401 when user not found", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -227,7 +228,7 @@ describe("Auth endpoints", () => {
     it("returns 401 when password wrong", async () => {
       const session = await createTestUser("authwrongpass");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -245,7 +246,7 @@ describe("Auth endpoints", () => {
 
     it("returns 401 when email is not registered", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -261,7 +262,7 @@ describe("Auth endpoints", () => {
     it("returns 401 when password is empty (backend validates via auth)", async () => {
       const session = await createTestUser("authemptypass");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -280,7 +281,7 @@ describe("Auth endpoints", () => {
     it("returns success when signed in user signs out", async () => {
       const session = await createTestUser("authsignout");
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-out`,
+        `${apiBase()}/api/auth/sign-out`,
         {
           method: "POST",
           headers: {
@@ -294,7 +295,7 @@ describe("Auth endpoints", () => {
 
     it("returns success when not authenticated", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-out`,
+        `${apiBase()}/api/auth/sign-out`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

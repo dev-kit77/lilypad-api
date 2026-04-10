@@ -9,6 +9,7 @@ import {
   signUp,
   trackForCleanup,
   cleanupAll,
+  apiBase,
   type AuthSession,
 } from "./helpers/http";
 import {
@@ -17,8 +18,9 @@ import {
   createTestAdmin,
   createTestPostReport,
 } from "./helpers/factory";
+import type { ApiResponse, FeedResponse, PostReplyResponse } from "./helpers/types";
 
-const base = () => process.env.TEST_API_BASE!;
+const base = () => apiBase();
 
 describe("Content endpoints", () => {
   let session: AuthSession;
@@ -118,9 +120,9 @@ describe("Content endpoints", () => {
       const res = await authedFetch("/content", session.cookie);
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as Record<string, unknown>;
-      expect(body).toHaveProperty("posts");
-      expect(body).toHaveProperty("comments");
+      const body = (await res.json()) as ApiResponse;
+      expect(body.posts).toBeDefined();
+      expect(body.comments).toBeDefined();
       expect(Array.isArray(body.posts)).toBe(true);
       expect(Array.isArray(body.comments)).toBe(true);
     });
@@ -643,9 +645,7 @@ describe("Content endpoints", () => {
       );
       expect(feedRes.status).toBe(200);
 
-      const feedBody = (await feedRes.json()) as {
-        posts: Array<Record<string, unknown>>;
-      };
+      const feedBody = (await feedRes.json()) as FeedResponse;
       const ourPost = feedBody.posts.find((p) => p.id === createBody.post.id);
       expect(ourPost).toBeDefined();
       expect(ourPost).toHaveProperty("distanceKm");

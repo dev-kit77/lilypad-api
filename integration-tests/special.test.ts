@@ -6,6 +6,7 @@ import {
   fetchWithTimeout,
   trackForCleanup,
   cleanupAll,
+  apiBase,
   type AuthSession,
 } from "./helpers/http";
 import {
@@ -46,7 +47,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special`,
+        `${apiBase()}/api/special`,
       );
       expect(res.status).toBe(401);
     });
@@ -55,7 +56,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${createdReportId}`,
+        `${apiBase()}/api/special/${createdReportId}`,
       );
       expect(res.status).toBe(401);
     });
@@ -64,7 +65,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${createdReportId}`,
+        `${apiBase()}/api/special/${createdReportId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -78,7 +79,7 @@ describe("Special (Reports) endpoints", () => {
   describe("DELETE /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${createdReportId}`,
+        `${apiBase()}/api/special/${createdReportId}`,
         { method: "DELETE" },
       );
       expect(res.status).toBe(401);
@@ -116,7 +117,7 @@ describe("Special (Reports) endpoints", () => {
   describe("GET /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${createdReportId}`,
+        `${apiBase()}/api/special/${createdReportId}`,
       );
       expect(res.status).toBe(401);
     });
@@ -167,7 +168,7 @@ describe("Special (Reports) endpoints", () => {
   describe("PUT /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${createdReportId}`,
+        `${apiBase()}/api/special/${createdReportId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -235,7 +236,7 @@ describe("Special (Reports) endpoints", () => {
   describe("DELETE /api/special/:reportId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/special/${createdReportId}`,
+        `${apiBase()}/api/special/${createdReportId}`,
         { method: "DELETE" },
       );
       expect(res.status).toBe(401);

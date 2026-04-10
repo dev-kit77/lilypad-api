@@ -1,4 +1,4 @@
-import { signUp, signIn, fetchWithTimeout } from "./http";
+import { signUp, signIn, fetchWithTimeout, apiBase } from "./http";
 import { promoteUserToAdminForTest } from "./http";
 import type { AuthSession } from "./http";
 
@@ -34,7 +34,7 @@ export async function signInTestUser(email: string): Promise<AuthSession> {
 
 export async function createTestPost(cookie: string, content = "Test content") {
   const res = await fetchWithTimeout(
-    `${process.env.TEST_API_BASE}/api/content/post`,
+    `${apiBase()}/api/content/post`,
     {
       method: "POST",
       headers: {
@@ -63,7 +63,7 @@ export async function createTestPostReport(
   content = "Test content",
 ) {
   const res = await fetchWithTimeout(
-    `${process.env.TEST_API_BASE}/api/content/post/${postId}`,
+    `${apiBase()}/api/content/post/${postId}`,
     {
       method: "POST",
       headers: {
@@ -89,7 +89,7 @@ export async function createTestUserReport(
   content = "Test content",
 ) {
   const res = await fetchWithTimeout(
-    `${process.env.TEST_API_BASE}/api/user/${userId}/report`,
+    `${apiBase()}/api/user/${userId}/report`,
     {
       method: "POST",
       headers: {

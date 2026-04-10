@@ -1,12 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { fetchWithTimeout } from "./helpers/http";
-
-const base = () => process.env.TEST_API_BASE!;
+import { fetchWithTimeout, apiBase } from "./helpers/http";
 
 describe("Ping endpoint", () => {
   describe("GET / (unauthenticated)", () => {
     it("returns 200 with ok status", async () => {
-      const res = await fetchWithTimeout(`${base()}/api/`);
+      const res = await fetchWithTimeout(`${apiBase()}/api/`);
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as Record<string, unknown>;

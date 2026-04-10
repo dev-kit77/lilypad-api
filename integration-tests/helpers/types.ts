@@ -4,11 +4,13 @@ export interface User {
   name?: string;
   bio?: string;
   status?: string;
-  settings: {
-    dark?: boolean;
-    anon?: boolean;
-  };
+  settings: UserSettings;
   createdAt: string;
+}
+
+export interface UserSettings {
+  dark?: boolean;
+  anon?: boolean;
 }
 
 export interface Post {
@@ -45,12 +47,33 @@ export interface ApiError {
   error?: string;
 }
 
-export interface ApiResponse<T = unknown> {
-  status: string;
-  user?: User;
-  post?: Post;
+export interface OkResponse {
+  status: "OK";
+}
+
+export interface ApiResponse {
   posts?: Post[];
   comments?: Post[];
-  report?: Report;
+  post?: Post;
+  user?: User;
   reports?: Report[];
+  report?: Report;
+  hidden?: boolean;
+}
+
+export interface FeedResponse {
+  posts: Post[];
+}
+
+export interface GdprSarResponse {
+  generatedAt: string;
+  requestType: string;
+  user: User;
+  posts: Post[];
+  reportsAgainstUser: Report[];
+  reportsFiled: Report[];
+}
+
+export interface PostReplyResponse {
+  replies: Post[];
 }

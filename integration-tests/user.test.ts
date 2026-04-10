@@ -7,6 +7,7 @@ import {
   fetchWithTimeout,
   trackForCleanup,
   cleanupAll,
+  apiBase,
   type AuthSession,
 } from "./helpers/http";
 import {
@@ -15,6 +16,7 @@ import {
   createTestUserReport,
   TEST_PASSWORD,
 } from "./helpers/factory";
+import type { GdprSarResponse, OkResponse } from "./helpers/types";
 
 describe("User endpoints", () => {
   let session: AuthSession;
@@ -31,7 +33,7 @@ describe("User endpoints", () => {
   describe("GET /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/user`,
+        `${apiBase()}/api/user`,
       );
       expect(res.status).toBe(401);
     });
@@ -40,7 +42,7 @@ describe("User endpoints", () => {
   describe("PUT /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/user`,
+        `${apiBase()}/api/user`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -54,7 +56,7 @@ describe("User endpoints", () => {
   describe("DELETE /api/user (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/user`,
+        `${apiBase()}/api/user`,
         {
           method: "DELETE",
         },
@@ -66,7 +68,7 @@ describe("User endpoints", () => {
   describe("GET /api/user/:userId (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/user/some-id`,
+        `${apiBase()}/api/user/some-id`,
       );
       expect(res.status).toBe(401);
     });
@@ -75,7 +77,7 @@ describe("User endpoints", () => {
   describe("POST /api/user/:userId/report (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/user/some-id/report`,
+        `${apiBase()}/api/user/some-id/report`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -101,7 +103,7 @@ describe("User endpoints", () => {
   describe("GET /api/user/gdpr-sar (unauthenticated)", () => {
     it("returns 401", async () => {
       const res = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/user/gdpr-sar`,
+        `${apiBase()}/api/user/gdpr-sar`,
       );
       expect(res.status).toBe(401);
     });
@@ -420,7 +422,7 @@ describe("User endpoints", () => {
       expect(deleteRes.status).toBe(200);
 
       const signInRes = await fetchWithTimeout(
-        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        `${apiBase()}/api/auth/sign-in/email`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

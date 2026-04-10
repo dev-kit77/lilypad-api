@@ -4,6 +4,7 @@
  */
 import { config } from "dotenv";
 import { resolve } from "node:path";
+import { apiBase } from "./helpers/http";
 
 config({ path: resolve(process.cwd(), ".env") });
 
@@ -16,14 +17,12 @@ if (!process.env.TEST_ADMIN_PROMOTE_SECRET?.trim()) {
   process.env.TEST_ADMIN_PROMOTE_SECRET = "lilypad-local-test-promote-only";
 }
 
-const base = process.env.TEST_API_BASE;
-
-const probe = await fetch(`${base}/api/user`, {
+const probe = await fetch(`${apiBase()}/api/user`, {
   method: "GET",
   signal: AbortSignal.timeout(8000),
 }).catch((e: unknown) => {
   throw new Error(
-    `API not reachable at ${base}. Start the server (e.g. docker compose up). Cause: ${e}`,
+    `API not reachable at ${apiBase()}. Start the server (e.g. docker compose up). Cause: ${e}`,
   );
 });
 
