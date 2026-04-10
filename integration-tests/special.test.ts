@@ -202,7 +202,7 @@ describe("Special (Reports) endpoints", () => {
   });
 
   describe("PUT /api/special/:reportId (admin, resolve report)", () => {
-    it("returns 200 when resolving a report", async () => {
+    it("returns 200 with report object when resolving a report", async () => {
       const res = await authedFetch(
         `/special/${createdReport?.id ?? "some-id"}`,
         adminSession.cookie,
@@ -213,9 +213,17 @@ describe("Special (Reports) endpoints", () => {
       );
       expect(res.status).toBe(200);
 
-      const body = (await res.json()) as Record<string, unknown>;
-      expect(body).toHaveProperty("status");
-      expect(body.status).toBe("OK");
+      const body = (await res.json()) as {
+        report: {
+          id: string;
+          resolved: boolean;
+          action?: string;
+        };
+      };
+      expect(body.report).toHaveProperty("id");
+      expect(body.report).toHaveProperty("resolved");
+      expect(body.report.resolved).toBe(true);
+      expect(body.report.action).toBe("user_warned");
     });
   });
 
