@@ -472,6 +472,157 @@ describe("Content endpoints", () => {
     });
   });
 
+  describe("GET /api/feed-spatial (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(`${base()}/api/feed-spatial?lat=51.5&lon=-0.1`);
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe("GET /api/feed-spatial (authenticated)", () => {
+    let createdPostId: string | null = null;
+
+    afterAll(async () => {
+      if (createdPostId) {
+        await deletePost(session.cookie, createdPostId);
+      }
+    });
+
+    it("returns 200 with posts array", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=51.5074&lon=-0.1278",
+        session.cookie,
+      );
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("posts");
+      expect(Array.isArray(body.posts)).toBe(true);
+    });
+
+    it("returns 400 when latitude is missing", async () => {
+      const res = await authedFetch("/feed-spatial?lon=-0.1278", session.cookie);
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when longitude is missing", async () => {
+      const res = await authedFetch("/feed-spatial?lat=51.5074", session.cookie);
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when latitude is out of range", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=999&lon=-0.1278",
+        session.cookie,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when longitude is out of range", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=51.5074&lon=999",
+        session.cookie,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns posts with distanceKm field", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Post for spatial feed test",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const feedRes = await authedFetch(
+        "/feed-spatial?lat=51.5074&lon=-0.1278",
+        session.cookie,
+      );
+      expect(feedRes.status).toBe(200);
+
+      const feedBody = (await feedRes.json()) as { posts: Array<Record<string, unknown>> };
+      const ourPost = feedBody.posts.find((p) => p.id === createdPostId);
+      expect(ourPost).toBeDefined();
+      expect(ourPost).toHaveProperty("distanceKm");
+    });
+
+    it("returns empty posts array when no posts nearby", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=0&lon=0",
+        session.cookie,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { posts: Array<Record<string, unknown>> };
+      expect(body.posts).toEqual([]);
+    });
+
+    it("returns 400 when latitude is non-numeric", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=abc&lon=-0.1278",
+        session.cookie,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when longitude is non-numeric", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=51.5074&lon=xyz",
+        session.cookie,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("handles negative coordinates (Southern/Western hemisphere)", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=-33.8688&lon=151.2093",
+        session.cookie,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("posts");
+    });
+
+    it("handles boundary coordinates (edge of valid range)", async () => {
+      const res = await authedFetch(
+        "/feed-spatial?lat=90&lon=180",
+        session.cookie,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("posts");
+    });
+
+    it("returns posts sorted by distance (closest first)", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Post for sorting test",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const feedRes = await authedFetch(
+        "/feed-spatial?lat=51.5074&lon=-0.1278",
+        session.cookie,
+      );
+      expect(feedRes.status).toBe(200);
+
+      const feedBody = (await feedRes.json()) as { posts: Array<{ distanceKm: number }> };
+      for (let i = 1; i < feedBody.posts.length; i++) {
+        expect(feedBody.posts[i]!.distanceKm).toBeGreaterThanOrEqual(
+          feedBody.posts[i - 1]!.distanceKm,
+        );
+      }
+    });
+  });
+
   describe("Cross-user authorization", () => {
     let otherUserSession: AuthSession;
     let userAPostId: string | null = null;
