@@ -14,9 +14,12 @@ export const adminController = new Elysia()
   // with role == 'admin'
   .use(authPlugin)
   .get(
-    "/content/:userId",
+    "/content/user/:userId",
     async ({ params, set }) => {
-      log.out(`GET request at /content/${params.userId}`, "admin-controller");
+      log.out(
+        `GET request at /content/user/${params.userId}`,
+        "admin-controller",
+      );
 
       log.out(`Querying for user ${params.userId}`, "admin-controller");
       const targetUser = await prisma.user.findUnique({
@@ -24,8 +27,8 @@ export const adminController = new Elysia()
       });
 
       if (!targetUser) {
-        set.status = 400;
-        log.err(400, `Invalid user ID: ${params.userId}`, "admin-controller");
+        set.status = 404;
+        log.err(404, `Invalid user ID: ${params.userId}`, "admin-controller");
         return { error: ERROR_CODES.INVALID_USER };
       }
 
@@ -49,9 +52,12 @@ export const adminController = new Elysia()
       const toItem = (post: (typeof rows)[number]) => ({
         id: post.CUID,
         content: post.content,
+        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
         author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-        time: post.time.toISOString(),
+        time: post.time,
+        ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
+        ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
         replyCount: post._count.postReplies,
       });
 

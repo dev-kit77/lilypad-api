@@ -312,7 +312,6 @@ export const userController = new Elysia()
             reportedUserID: params.userId,
             reason: body.reason,
             content: body.content,
-            action: body.action,
           },
         });
         log.success(`Report filed for ${params.userId}`, "user-controller");
