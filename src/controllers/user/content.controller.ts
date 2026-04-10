@@ -233,7 +233,7 @@ export const contentController = new Elysia()
     "/content/post/:postId",
     async ({ params, set }) => {
       log.out(
-        `POST request at /content/post/${params.postId}`,
+        `GET request at /content/post/${params.postId}`,
         "content-controller",
       );
 
@@ -589,7 +589,7 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      const hasUpvoted = existing.upvotes.length > 1;
+      const hasUpvoted = existing.upvotes.length > 0;
 
       const updated = await prisma.post.update({
         where: { CUID: params.postId },

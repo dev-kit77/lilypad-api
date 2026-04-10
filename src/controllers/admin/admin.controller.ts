@@ -147,7 +147,7 @@ export const adminController = new Elysia()
     async ({ params, set }) => {
       log.out(
         `GET request at /content/post/${params.postId}/special`,
-        "content-controller",
+        "admin-controller",
       );
 
       try {

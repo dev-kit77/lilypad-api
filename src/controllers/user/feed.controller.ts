@@ -51,7 +51,7 @@ export const contentController = new Elysia().use(authPlugin).get(
     log.success(`Found ${nearby.length} nearby points`, "feed-controller");
     const distanceMap = new Map(nearby.map((r) => [r.CUID, r.distance_m]));
 
-    log.out(`Quering for posts at nearby points`, "feed-controller");
+    log.out(`Querying for posts at nearby points`, "feed-controller");
 
     const posts = await prisma.post.findMany({
       where: {

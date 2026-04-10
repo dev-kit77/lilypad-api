@@ -259,7 +259,7 @@ export const userController = new Elysia()
     async ({ user, set }) => {
       log.out(`DELETE request at /user`, "user-controller");
 
-      log.out(`Quereing User ${user.id}`, "user-controller");
+      log.out(`Querying User ${user.id}`, "user-controller");
 
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
