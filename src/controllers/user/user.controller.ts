@@ -146,7 +146,7 @@ export const userController = new Elysia()
         return { error: ERROR_CODES.INVALID_FIELD };
       }
 
-      prisma.$transaction(async (tx) => {
+      const res = await prisma.$transaction(async (tx) => {
         if (body.username) {
           if (body.username.trim().length === 0) {
             set.status = 400;
@@ -276,6 +276,12 @@ export const userController = new Elysia()
           );
         }
       });
+
+      if (!res) {
+        set.status = 500;
+        log.err(500, `User ${user.id} failed to update`, "user-controller");
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
 
       const updatedUser = await prisma.user.findUnique({
         where: { id: user.id },
