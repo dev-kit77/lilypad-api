@@ -5,6 +5,8 @@ import {
   deleteReport,
   promoteUserToAdminForTest,
   fetchWithTimeout,
+  trackForCleanup,
+  cleanupAll,
   type AuthSession,
 } from "./helpers/http";
 import {
@@ -19,12 +21,11 @@ describe("User endpoints", () => {
 
   beforeAll(async () => {
     session = await createTestUser("user-test");
+    trackForCleanup({ type: "user", id: session.userId, cookie: session.cookie });
   });
 
   afterAll(async () => {
-    if (session?.cookie) {
-      await deleteCurrentUser(session.cookie);
-    }
+    await cleanupAll();
   });
 
   describe("GET /api/user (unauthenticated)", () => {
@@ -107,13 +108,12 @@ describe("User endpoints", () => {
   });
 
   describe("GET /api/user/gdpr-sar (authenticated)", () => {
-    let reporterSession: AuthSession | null = null;
-    let adminSession: AuthSession | null = null;
-    let report: { id: string } | null = null;
+    it("returns 200 with downloadable JSON and anonymised reporters", async () => {
+      const reporterSession = await createTestUser("reporter");
+      trackForCleanup({ type: "user", id: reporterSession.userId, cookie: reporterSession.cookie });
 
-    beforeAll(async () => {
-      reporterSession = await createTestUser("reporter");
-      adminSession = await createTestAdmin();
+      const adminSession = await createTestAdmin();
+      trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
 
       const reportRes = await createTestUserReport(
         reporterSession.cookie,
@@ -122,22 +122,7 @@ describe("User endpoints", () => {
         "SAR anonymisation test",
       );
 
-      report = reportRes.report;
-    });
-
-    afterAll(async () => {
-      if (report && adminSession?.cookie) {
-        await deleteReport(adminSession.cookie, report.id);
-      }
-      if (reporterSession?.cookie) {
-        await deleteCurrentUser(reporterSession.cookie);
-      }
-      if (adminSession?.cookie) {
-        await deleteCurrentUser(adminSession.cookie);
-      }
-    });
-
-    it("returns 200 with downloadable JSON and anonymised reporters", async () => {
+      trackForCleanup({ type: "report", id: reportRes.report.id, cookie: adminSession.cookie });
       const res = await authedFetch("/user/gdpr-sar", session.cookie);
       expect(res.status).toBe(200);
 
@@ -342,15 +327,8 @@ describe("User endpoints", () => {
     beforeAll(async () => {
       targetUserSession = await createTestUser("reporttarget");
       reportSession = await createTestUser("reporter");
-    });
-
-    afterAll(async () => {
-      if (targetUserSession?.cookie) {
-        await deleteCurrentUser(targetUserSession.cookie);
-      }
-      if (reportSession?.cookie) {
-        await deleteCurrentUser(reportSession.cookie);
-      }
+      trackForCleanup({ type: "user", id: targetUserSession.userId, cookie: targetUserSession.cookie });
+      trackForCleanup({ type: "user", id: reportSession.userId, cookie: reportSession.cookie });
     });
 
     it("returns 200 when reporting a user", async () => {

@@ -155,3 +155,54 @@ export async function promoteUserToAdminForTest(userId: string): Promise<void> {
     );
   }
 }
+
+export interface CleanupItem {
+  type: "user" | "post" | "report";
+  id: string;
+  cookie: string;
+}
+
+const cleanupQueue: CleanupItem[] = [];
+
+export function trackForCleanup(item: CleanupItem): void {
+  cleanupQueue.push(item);
+}
+
+export function removeFromCleanup(itemId: string): void {
+  const idx = cleanupQueue.findIndex((c) => c.id === itemId);
+  if (idx !== -1) {
+    cleanupQueue.splice(idx, 1);
+  }
+}
+
+export async function cleanupAll(): Promise<void> {
+  const items = cleanupQueue.splice(0);
+
+  const reports = items.filter((i) => i.type === "report");
+  const posts = items.filter((i) => i.type === "post");
+  const users = items.filter((i) => i.type === "user");
+
+  for (const item of reports) {
+    try {
+      await deleteReport(item.cookie, item.id);
+    } catch {
+      // skip
+    }
+  }
+
+  for (const item of posts) {
+    try {
+      await deletePost(item.cookie, item.id);
+    } catch {
+      // skip
+    }
+  }
+
+  for (const item of users) {
+    try {
+      await deleteCurrentUser(item.cookie);
+    } catch {
+      // skip
+    }
+  }
+}

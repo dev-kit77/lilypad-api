@@ -3,6 +3,8 @@ import {
   authedFetch,
   deleteCurrentUser,
   fetchWithTimeout,
+  trackForCleanup,
+  cleanupAll,
   type AuthSession,
 } from "./helpers/http";
 import { createTestUser, createTestAdmin } from "./helpers/factory";
@@ -16,15 +18,12 @@ describe("Admin endpoints", () => {
   beforeAll(async () => {
     targetSession = await createTestUser("target-test");
     adminSession = await createTestAdmin();
+    trackForCleanup({ type: "user", id: targetSession.userId, cookie: targetSession.cookie });
+    trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
   });
 
   afterAll(async () => {
-    if (targetSession?.cookie) {
-      await deleteCurrentUser(targetSession.cookie);
-    }
-    if (adminSession?.cookie) {
-      await deleteCurrentUser(adminSession.cookie);
-    }
+    await cleanupAll();
   });
 
   describe("GET /api/content/user/:userId/special (unauthenticated)", () => {
@@ -98,12 +97,7 @@ describe("Admin endpoints", () => {
 
     beforeAll(async () => {
       banTestSession = await createTestUser("bantest");
-    });
-
-    afterAll(async () => {
-      if (banTestSession?.cookie) {
-        await deleteCurrentUser(banTestSession.cookie);
-      }
+      trackForCleanup({ type: "user", id: banTestSession.userId, cookie: banTestSession.cookie });
     });
 
     it("returns 200 when banning a user with a time-limited ban", async () => {

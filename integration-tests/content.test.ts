@@ -7,6 +7,8 @@ import {
   fetchWithTimeout,
   promoteUserToAdminForTest,
   signUp,
+  trackForCleanup,
+  cleanupAll,
   type AuthSession,
 } from "./helpers/http";
 import {
@@ -23,12 +25,11 @@ describe("Content endpoints", () => {
 
   beforeAll(async () => {
     session = await createTestUser("content-test");
+    trackForCleanup({ type: "user", id: session.userId, cookie: session.cookie });
   });
 
   afterAll(async () => {
-    if (session?.cookie) {
-      await deleteCurrentUser(session.cookie);
-    }
+    await cleanupAll();
   });
 
   describe("GET /api/content (unauthenticated)", () => {
@@ -126,14 +127,6 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post (authenticated)", () => {
-    let createdPostIds: string[] = [];
-
-    afterAll(async () => {
-      for (const postId of createdPostIds) {
-        await deletePost(session.cookie, postId);
-      }
-    });
-
     it("returns 200 with post object when creating a post", async () => {
       const res = await authedFetch("/content/post", session.cookie, {
         method: "POST",
@@ -144,7 +137,7 @@ describe("Content endpoints", () => {
       });
       expect(res.status).toBe(200);
       const body = (await res.json()) as { post: { id: string } };
-      createdPostIds.push(body.post.id);
+      trackForCleanup({ type: "post", id: body.post.id, cookie: session.cookie });
       expect(body.post).toHaveProperty("id");
       expect(body.post).toHaveProperty("content");
     });
@@ -205,14 +198,6 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post/:postId/reply (authenticated)", () => {
-    let createdPostId: string | null = null;
-
-    afterAll(async () => {
-      if (createdPostId) {
-        await deletePost(session.cookie, createdPostId);
-      }
-    });
-
     it("returns 400 when reply content is empty", async () => {
       const createRes = await authedFetch("/content/post", session.cookie, {
         method: "POST",
@@ -222,10 +207,10 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const replyRes = await authedFetch(
-        `/content/post/${createdPostId}/reply`,
+        `/content/post/${createBody.post.id}/reply`,
         session.cookie,
         {
           method: "POST",
@@ -256,10 +241,10 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const replyRes = await authedFetch(
-        `/content/post/${createdPostId}/reply`,
+        `/content/post/${createBody.post.id}/reply`,
         session.cookie,
         {
           method: "POST",
@@ -278,10 +263,10 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const replyRes = await authedFetch(
-        `/content/post/${createdPostId}/reply`,
+        `/content/post/${createBody.post.id}/reply`,
         session.cookie,
         {
           method: "POST",
@@ -293,14 +278,6 @@ describe("Content endpoints", () => {
   });
 
   describe("GET /api/content/post/:postId/reply (authenticated)", () => {
-    let createdPostId: string | null = null;
-
-    afterAll(async () => {
-      if (createdPostId) {
-        await deletePost(session.cookie, createdPostId);
-      }
-    });
-
     it("returns 404 for a non-existent post", async () => {
       const res = await authedFetch(
         "/content/post/non-existent-id/reply",
@@ -318,10 +295,10 @@ describe("Content endpoints", () => {
         }),
       });
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const replyRes = await authedFetch(
-        `/content/post/${createdPostId}/reply`,
+        `/content/post/${createBody.post.id}/reply`,
         session.cookie,
         {
           method: "POST",
@@ -331,7 +308,7 @@ describe("Content endpoints", () => {
       expect(replyRes.status).toBe(200);
 
       const getRepliesRes = await authedFetch(
-        `/content/post/${createdPostId}/reply`,
+        `/content/post/${createBody.post.id}/reply`,
         session.cookie,
       );
       expect(getRepliesRes.status).toBe(200);
@@ -340,7 +317,6 @@ describe("Content endpoints", () => {
         string,
         unknown
       >;
-      console.log(JSON.stringify(getRepliesRes));
       expect(repliesBody).toHaveProperty("replies");
       expect(Array.isArray(repliesBody.replies)).toBe(true);
       expect((repliesBody.replies as unknown[]).length).toBe(1);
@@ -371,19 +347,11 @@ describe("Content endpoints", () => {
       expect(Array.isArray(repliesBody.replies)).toBe(true);
       expect((repliesBody.replies as unknown[]).length).toBe(0);
 
-      await deletePost(session.cookie, postId);
+      trackForCleanup({ type: "post", id: postId, cookie: session.cookie });
     });
   });
 
   describe("GET /api/content/post/:postId (authenticated)", () => {
-    let createdPostId: string | null = null;
-
-    afterAll(async () => {
-      if (createdPostId) {
-        await deletePost(session.cookie, createdPostId);
-      }
-    });
-
     it("returns 404 for a non-existent post", async () => {
       const res = await authedFetch(
         "/content/post/non-existent-id",
@@ -402,29 +370,21 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const getRes = await authedFetch(
-        `/content/post/${createdPostId}`,
+        `/content/post/${createBody.post.id}`,
         session.cookie,
       );
       expect(getRes.status).toBe(200);
 
       const getBody = (await getRes.json()) as Record<string, unknown>;
       expect(getBody).toHaveProperty("post");
-      expect((getBody.post as Record<string, unknown>).id).toBe(createdPostId);
+      expect((getBody.post as Record<string, unknown>).id).toBe(createBody.post.id);
     });
   });
 
   describe("PUT /api/content/post/:postId (authenticated)", () => {
-    let createdPostId: string | null = null;
-
-    afterAll(async () => {
-      if (createdPostId) {
-        await deletePost(session.cookie, createdPostId);
-      }
-    });
-
     it("returns 200 when updating own post", async () => {
       const createRes = await authedFetch("/content/post", session.cookie, {
         method: "POST",
@@ -435,10 +395,10 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const updateRes = await authedFetch(
-        `/content/post/${createdPostId}`,
+        `/content/post/${createBody.post.id}`,
         session.cookie,
         {
           method: "PUT",
@@ -473,10 +433,10 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const updateRes = await authedFetch(
-        `/content/post/${createdPostId}`,
+        `/content/post/${createBody.post.id}`,
         session.cookie,
         {
           method: "PUT",
@@ -592,36 +552,19 @@ describe("Content endpoints", () => {
   });
 
   describe("POST /api/content/post/:postId (report)", () => {
-    let postId: string | null = null;
-    let createdReport: { id: string } | null = null;
-    let adminSession: AuthSession | null = null;
-
-    afterAll(async () => {
-      adminSession = await createTestAdmin();
-
-      if (postId) {
-        await deletePost(session.cookie, postId);
-      }
-      if (createdReport && adminSession?.cookie) {
-        await deleteReport(adminSession.cookie, createdReport.id);
-      }
-    });
-
     it("returns 200 when reporting a post", async () => {
       const createdPost = await createTestPost(
         session.cookie,
         "Post to report",
       );
-      postId = createdPost.post.id;
+      trackForCleanup({ type: "post", id: createdPost.post.id, cookie: session.cookie });
 
       const reportRes = await createTestPostReport(
         session.cookie,
-        postId,
+        createdPost.post.id,
         "spam",
         "This is a spam post.",
       );
-
-      createdReport = reportRes.report;
 
       expect(reportRes.report).toHaveProperty("id");
       expect(reportRes.report).toHaveProperty("reason");
@@ -638,14 +581,6 @@ describe("Content endpoints", () => {
   });
 
   describe("GET /api/feed-spatial (authenticated)", () => {
-    let createdPostId: string | null = null;
-
-    afterAll(async () => {
-      if (createdPostId) {
-        await deletePost(session.cookie, createdPostId);
-      }
-    });
-
     it("returns 200 with posts array", async () => {
       const res = await authedFetch(
         "/feed-spatial?lat=51.5074&lon=-0.1278",
@@ -700,7 +635,7 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const feedRes = await authedFetch(
         "/feed-spatial?lat=51.5074&lon=-0.1278",
@@ -711,7 +646,7 @@ describe("Content endpoints", () => {
       const feedBody = (await feedRes.json()) as {
         posts: Array<Record<string, unknown>>;
       };
-      const ourPost = feedBody.posts.find((p) => p.id === createdPostId);
+      const ourPost = feedBody.posts.find((p) => p.id === createBody.post.id);
       expect(ourPost).toBeDefined();
       expect(ourPost).toHaveProperty("distanceKm");
     });
@@ -774,7 +709,7 @@ describe("Content endpoints", () => {
       });
       expect(createRes.status).toBe(200);
       const createBody = (await createRes.json()) as { post: { id: string } };
-      createdPostId = createBody.post.id;
+      trackForCleanup({ type: "post", id: createBody.post.id, cookie: session.cookie });
 
       const feedRes = await authedFetch(
         "/feed-spatial?lat=51.5074&lon=-0.1278",
@@ -795,35 +730,20 @@ describe("Content endpoints", () => {
 
   describe("Cross-user authorization", () => {
     let otherUserSession: AuthSession;
-    let userAPostId: string | null = null;
-    let adminSession: AuthSession | null = null;
-    let reportId: string | null = null;
+    let createdPostId: string;
 
     beforeAll(async () => {
       otherUserSession = await createTestUser("other-user");
+      trackForCleanup({ type: "user", id: otherUserSession.userId, cookie: otherUserSession.cookie });
 
       const createdPost = await createTestPost(session.cookie, "User A's post");
-      userAPostId = createdPost.post.id;
-    });
-
-    afterAll(async () => {
-      if (userAPostId) {
-        await deletePost(session.cookie, userAPostId);
-      }
-      if (reportId && adminSession?.cookie) {
-        await deleteReport(adminSession.cookie, reportId);
-      }
-      if (otherUserSession?.cookie) {
-        await deleteCurrentUser(otherUserSession.cookie);
-      }
-      if (adminSession?.cookie) {
-        await deleteCurrentUser(adminSession.cookie);
-      }
+      createdPostId = createdPost.post.id;
+      trackForCleanup({ type: "post", id: createdPostId, cookie: session.cookie });
     });
 
     it("returns 403 when user B tries to update user A's post", async () => {
       const res = await authedFetch(
-        `/content/post/${userAPostId}`,
+        `/content/post/${createdPostId}`,
         otherUserSession.cookie,
         {
           method: "PUT",
@@ -835,7 +755,7 @@ describe("Content endpoints", () => {
 
     it("returns 403 when user B tries to delete user A's post", async () => {
       const res = await authedFetch(
-        `/content/post/${userAPostId}`,
+        `/content/post/${createdPostId}`,
         otherUserSession.cookie,
         { method: "DELETE" },
       );
@@ -844,7 +764,7 @@ describe("Content endpoints", () => {
 
     it("user B can still read user A's post", async () => {
       const res = await authedFetch(
-        `/content/post/${userAPostId}`,
+        `/content/post/${createdPostId}`,
         otherUserSession.cookie,
       );
       expect(res.status).toBe(200);
@@ -852,7 +772,7 @@ describe("Content endpoints", () => {
 
     it("user B can report user A's post", async () => {
       const res = await authedFetch(
-        `/content/post/${userAPostId}`,
+        `/content/post/${createdPostId}`,
         otherUserSession.cookie,
         {
           method: "POST",
@@ -863,21 +783,11 @@ describe("Content endpoints", () => {
         },
       );
       expect(res.status).toBe(200);
-
-      adminSession = await createTestAdmin();
-
-      const reportsRes = await authedFetch("/special", adminSession.cookie);
-      const reportsBody = (await reportsRes.json()) as {
-        reports: Array<{ id: string }>;
-      };
-      if (reportsBody.reports.length > 0) {
-        reportId = reportsBody.reports[0]!.id;
-      }
     });
 
     it("user B can reply to user A's post", async () => {
       const res = await authedFetch(
-        `/content/post/${userAPostId}/reply`,
+        `/content/post/${createdPostId}/reply`,
         otherUserSession.cookie,
         {
           method: "POST",
@@ -889,7 +799,7 @@ describe("Content endpoints", () => {
 
     it("user B can upvote user A's post", async () => {
       const res = await authedFetch(
-        `/content/post/${userAPostId}/upvote`,
+        `/content/post/${createdPostId}/upvote`,
         otherUserSession.cookie,
         { method: "PUT" },
       );
@@ -904,12 +814,7 @@ describe("Content endpoints", () => {
 
     beforeAll(async () => {
       adminSession = await createTestAdmin();
-    });
-
-    afterAll(async () => {
-      if (adminSession?.cookie) {
-        await deleteCurrentUser(adminSession.cookie);
-      }
+      trackForCleanup({ type: "user", id: adminSession.userId, cookie: adminSession.cookie });
     });
 
     it("hidden post is not returned in GET /api/content", async () => {
