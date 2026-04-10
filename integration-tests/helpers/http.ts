@@ -62,13 +62,18 @@ export function authedFetch(
   path: string,
   cookie: string,
   init: RequestInit = {},
+  timeout: number = 5000,
 ): Promise<Response> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   headers.set("Cookie", cookie);
-  return fetch(apiUrl(path), { ...init, headers });
+  return fetch(apiUrl(path), {
+    ...init,
+    headers,
+    signal: AbortSignal.timeout(timeout),
+  });
 }
 
 /** Deletes the signed-in user via DELETE /api/user (same DB path as the running API). */

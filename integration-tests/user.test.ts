@@ -203,35 +203,27 @@ describe("User endpoints", () => {
       const deletedName = `deleteauthor${seed}`;
       const author = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
 
-      try {
-        const deleteRes = await authedFetch("/user", author.cookie, {
-          method: "DELETE",
-        });
-        expect(deleteRes.status).toBe(200);
+      const deleteRes = await authedFetch("/user", author.cookie, {
+        method: "DELETE",
+      });
+      expect(deleteRes.status).toBe(200);
 
-        const signInRes = await fetch(
-          `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: deletedEmail,
-              password: TEST_PASSWORD,
-            }),
-          },
-        );
-        expect(signInRes.ok).toBeFalse();
+      const signInRes = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: deletedEmail,
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      expect(signInRes.ok).toBeFalse();
 
-        const recreated = await signUp(
-          deletedEmail,
-          TEST_PASSWORD,
-          deletedName,
-        );
-        expect(recreated.userId).toBeDefined();
-        await deleteCurrentUser(recreated.cookie);
-      } finally {
-        await deleteCurrentUser(author.cookie);
-      }
+      const recreated = await signUp(deletedEmail, TEST_PASSWORD, deletedName);
+      expect(recreated.userId).toBeDefined();
+      await deleteCurrentUser(recreated.cookie);
     });
   });
 });
