@@ -10,47 +10,47 @@ datasource db {
 // AUTHENTICATION MODELS START
 
 model User {
-  id                    String         @id
+  id            String        @id
   ///User associated username, despite being named "name"
-  name                  String         @unique
-  email                 String
-  emailVerified         Boolean        @default(false)
-  image                 String?
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
-  role                  String?
-  banned                Boolean?       @default(false)
-  banReason             String?
-  banExpires            DateTime?
-  sessions              Session[]
-  accounts              Account[]
-  posts                 Post[]
+  name          String        @unique
+  email         String
+  emailVerified Boolean       @default(false)
+  image         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  role          String?
+  banned        Boolean?      @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  sessions      Session[]
+  accounts      Account[]
+  posts         Post[]
   ///Array of posts a user has upvoted
-  upvotes               Post[]         @relation("upvotes")
+  upvotes       Post[]        @relation("upvotes")
   ///Profile data object to store public display data
-  profile               UserProfile?
+  profile       UserProfile?
   ///Settings data object to store private user settings
-  settings              UserSettings?
+  settings      UserSettings?
   ///Array of report objects made against other users
-  reports               Report[]       @relation("reportee")
+  reports       Report[]      @relation("reportee")
   ///Array of report ojects made against the User
-  userReports           Report[]       @relation("reported")
+  userReports   Report[]      @relation("reported")
 
   @@unique([email])
   @@map("user")
 }
 
 model Session {
-  id                    String   @id
-  expiresAt             DateTime
-  token                 String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  ipAddress             String?
-  userAgent             String?
-  userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  impersonatedBy        String?
+  id             String   @id
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
 
   @@unique([token])
   @@index([userId])
@@ -78,12 +78,12 @@ model Account {
 }
 
 model Verification {
-  id                    String   @id
-  identifier            String
-  value                 String
-  expiresAt             DateTime
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([identifier])
   @@map("verification")
@@ -145,6 +145,8 @@ model Post {
   updated      DateTime @default(now())
   ///Array of users who have upvoted this post
   upvotes      User[]   @relation("upvotes")
+  ///Hidden boolean flag indicating if this post is hidden to the public
+  hidden       Boolean  @default(false)
   ///Post ID of the Post this Post is replying to
   replyingToID String?
   ///Post object that this Post is replying to
@@ -160,7 +162,7 @@ model Post {
 ///Model for storing post locations as PostGIS geography points
 model Location {
   ///Location ID stored as a CUID (Collision Resistant Universally Unique Identifier)
-  CUID  String                          @id @default(cuid())
+  CUID  String                                @id @default(cuid())
   ///PostGIS geography point (lon, lat in WGS-84). Written via raw SQL — Prisma cannot set Unsupported types.
   geog  Unsupported("geography(Point, 4326)")
   ///Posts attached to this location
