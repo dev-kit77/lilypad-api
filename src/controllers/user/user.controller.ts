@@ -126,6 +126,10 @@ export const userController = new Elysia()
       log.out(`PUT request at /user`, "user-controller");
       try {
         if (body.username) {
+          if (body.username.trim().length === 0) {
+            set.status = 400;
+            return { error: ERROR_CODES.INVALID_FIELD };
+          }
           log.out(
             `User ${user.id} updating username to ${body.username}`,
             "user-controller",
@@ -141,6 +145,10 @@ export const userController = new Elysia()
         }
 
         if (body.status) {
+          if (body.status.trim().length === 0) {
+            set.status = 400;
+            return { error: ERROR_CODES.INVALID_FIELD };
+          }
           log.out(
             `User ${user.id} updating status to ${body.status}`,
             "user-controller",
@@ -157,6 +165,10 @@ export const userController = new Elysia()
         }
 
         if (body.settings) {
+          if (JSON.stringify(body.settings) === "{}") {
+            set.status = 400;
+            return { error: ERROR_CODES.INVALID_FIELD };
+          }
           log.out(
             `User ${user.id} updating settings to ${JSON.stringify(body.settings)}`,
             "user-controller",
@@ -304,6 +316,16 @@ export const userController = new Elysia()
     "/user/:userId/report",
     async ({ user, params, body, set }) => {
       log.out(`Executed POST /user/${params.userId}/report`, "user-controller");
+
+      const profile = await prisma.userProfile.findUnique({
+        where: { userID: params.userId },
+      });
+
+      if (!profile) {
+        set.status = 404;
+        return { error: ERROR_CODES.INVALID_ID };
+      }
+
       try {
         log.out(`Creating Report for ${params.userId}`, "user-controller");
         const report = await prisma.report.create({
