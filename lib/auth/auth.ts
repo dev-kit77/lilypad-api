@@ -14,7 +14,7 @@ export const auth = betterAuth({
     }),
     rateLimit: {
         enabled: false
-    },
+      },
     plugins: [
         admin(),
     ],
