@@ -91,9 +91,9 @@ export const contentController = new Elysia()
 
       if (body.content.trim().length === 0 || !body.locality || !lat || !lon) {
         set.status = 400;
+        log.err(400, `Invalid field: ${body.content}`, "content-controller");
         return { error: ERROR_CODES.INVALID_FIELD };
       }
-      const { lat, lon } = body.locality;
 
       // geog type is Unsupported in Prisma so all location reads/writes use raw SQL
       log.out(
@@ -214,50 +214,40 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      try {
-        const post = await prisma.post.findUnique({
-          where: { CUID: params.postId },
-          include: {
-            user: { include: { settings: true } },
-            _count: { select: { upvotes: true, postReplies: true } },
-          },
-        });
+      const post = await prisma.post.findUnique({
+        where: { CUID: params.postId },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+      });
 
-        if (!post) {
-          set.status = 404;
-          log.err(
-            404,
-            `Post not found: ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_ID };
-        } else if (post.hidden) {
-          set.status = 403;
-          log.err(
-            403,
-            `You do not have permission to view this post: ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_USER };
-        }
-
-        return {
-          post: {
-            id: post.CUID,
-            content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-            time: post.time,
-            ...(post.updated ? { updated: post.updated } : {}),
-            upvotes: post._count.upvotes,
-            replyCount: post._count.postReplies,
-          },
-        };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Failed to get post: ${e}`, "content-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
+      if (!post) {
+        set.status = 404;
+        log.err(404, `Post not found: ${params.postId}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      } else if (post.hidden) {
+        set.status = 403;
+        log.err(
+          403,
+          `You do not have permission to view this post: ${params.postId}`,
+          "content-controller",
+        );
+        return { error: ERROR_CODES.INVALID_USER };
       }
+
+      return {
+        post: {
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        },
+      };
     },
     {
       auth: true,
@@ -281,40 +271,45 @@ export const contentController = new Elysia()
         return { error: ERROR_CODES.INVALID_FIELD };
       }
 
-      try {
-        log.out(`Creating Report for ${params.postId}`, "user-controller");
-        const report = await prisma.report.create({
-          data: {
-            userID: user.id,
-            reportedPostID: params.postId,
-            reason: body.reason,
-            content: body.content,
-          },
-        });
-        log.success(`Report filed for ${params.postId}`, "user-controller");
+      log.out(`Creating Report for ${params.postId}`, "user-controller");
+      const report = await prisma.report.create({
+        data: {
+          userID: user.id,
+          reportedPostID: params.postId,
+          reason: body.reason,
+          content: body.content,
+        },
+      });
 
-        return {
-          report: {
-            id: report.CUID,
-            userID: report.userID,
-            reason: report.reason,
-            content: report.content,
-            time: report.time,
-            resolved: report.resolved,
-            ...(report.action ? { action: report.action } : {}),
-            ...(report.reportedPostID
-              ? { reportedPostID: report.reportedPostID }
-              : {}),
-            ...(report.reportedUserID
-              ? { reportedUserID: report.reportedUserID }
-              : {}),
-          },
-        };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
+      if (!report) {
+        set.status = 500;
+        log.err(
+          500,
+          `Failed to create report for ${params.postId}`,
+          "user-controller",
+        );
+        return { error: ERROR_CODES.INTERNAL_SERVER };
       }
+
+      log.success(`Report filed for ${params.postId}`, "user-controller");
+
+      return {
+        report: {
+          id: report.CUID,
+          userID: report.userID,
+          reason: report.reason,
+          content: report.content,
+          time: report.time,
+          resolved: report.resolved,
+          ...(report.action ? { action: report.action } : {}),
+          ...(report.reportedPostID
+            ? { reportedPostID: report.reportedPostID }
+            : {}),
+          ...(report.reportedUserID
+            ? { reportedUserID: report.reportedUserID }
+            : {}),
+        },
+      };
     },
     {
       auth: true,
@@ -344,76 +339,83 @@ export const contentController = new Elysia()
         return { error: ERROR_CODES.INVALID_FIELD };
       }
 
-      try {
-        log.out(
-          `Finding parent post: CUID=${params.postId}`,
+      log.out(
+        `Finding parent post: CUID=${params.postId}`,
+        "content-controller",
+      );
+
+      const parent = await prisma.post.findUnique({
+        where: { CUID: params.postId, hidden: false },
+      });
+
+      if (!parent) {
+        log.err(
+          404,
+          `Parent post not found: CUID=${params.postId}`,
           "content-controller",
         );
-        const parent = await prisma.post.findUnique({
-          where: { CUID: params.postId, hidden: false },
-        });
-
-        if (!parent) {
-          log.err(
-            400,
-            `Parent post not found: CUID=${params.postId}`,
-            "content-controller",
-          );
-          set.status = 400;
-          return { error: ERROR_CODES.INVALID_ID };
-        }
-        log.success(
-          `Parent post found: CUID=${params.postId}`,
-          "content-controller",
-        );
-
-        log.out(`Creating reply post...`, "content-controller");
-        const created = await prisma.post.create({
-          data: {
-            userID: user.id,
-            content: body.content,
-            locationID: parent.locationID,
-            replyingToID: parent.CUID,
-          },
-        });
-
-        log.success(`Reply post created!`, "content-controller");
-
-        log.out(`Fetching post...`, "content-controller");
-
-        const post = await prisma.post.findUnique({
-          where: { CUID: created.CUID, hidden: false },
-          include: {
-            user: { include: { settings: true } },
-            _count: { select: { upvotes: true, postReplies: true } },
-          },
-        });
-
-        if (!post) {
-          set.status = 404;
-          log.err(404, `Post not found: ${created.CUID}`, "content-controller");
-          return { error: ERROR_CODES.INVALID_ID };
-        }
-
-        log.success(`Fetched post!`, "content-controller");
-
-        return {
-          post: {
-            id: post.CUID,
-            content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-            time: post.time,
-            ...(post.updated ? { updated: post.updated } : {}),
-            upvotes: post._count.upvotes,
-            replyCount: post._count.postReplies,
-          },
-        };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Failed to create reply post: ${e}`, "content-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
+        set.status = 404;
+        return { error: ERROR_CODES.INVALID_ID };
       }
+
+      log.success(
+        `Parent post found: CUID=${params.postId}`,
+        "content-controller",
+      );
+
+      log.out(`Creating reply post...`, "content-controller");
+
+      const created = await prisma.post.create({
+        data: {
+          userID: user.id,
+          content: body.content,
+          locationID: parent.locationID,
+          replyingToID: parent.CUID,
+        },
+      });
+
+      if (!created) {
+        set.status = 500;
+        log.err(
+          500,
+          `Failed to create reply post for ${params.postId}`,
+          "content-controller",
+        );
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
+
+      log.success(`Reply post created!`, "content-controller");
+
+      log.out(`Fetching post...`, "content-controller");
+
+      const post = await prisma.post.findUnique({
+        where: { CUID: created.CUID, hidden: false },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+      });
+
+      if (!post) {
+        set.status = 404;
+        log.err(404, `Post not found: ${created.CUID}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      }
+
+      log.success(`Fetched post!`, "content-controller");
+
+      return {
+        post: {
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        },
+      };
     },
     {
       auth: true,
@@ -441,102 +443,89 @@ export const contentController = new Elysia()
         return { error: ERROR_CODES.INVALID_FIELD };
       }
 
-      try {
-        log.out(
-          `Checking user ${user.id} access for post ${params.postId}`,
+      log.out(
+        `Checking user ${user.id} access for post ${params.postId}`,
+        "content-controller",
+      );
+
+      const existing = await prisma.post.findUnique({
+        where: { CUID: params.postId, hidden: false },
+      });
+
+      if (!existing) {
+        set.status = 404;
+        log.err(404, `Post not found: ${params.postId}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      } else if (existing.userID !== user.id) {
+        set.status = 403;
+        log.err(
+          403,
+          `User ${user.id} does not have privilege to edit post ${params.postId}`,
           "content-controller",
         );
-
-        const existing = await prisma.post.findUnique({
-          where: { CUID: params.postId, hidden: false },
-        });
-        if (!existing) {
-          set.status = 404;
-          log.err(
-            404,
-            `Post not found: ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_ID };
-        }
-        if (existing.userID !== user.id) {
-          set.status = 403;
-          log.err(
-            403,
-            `User ${user.id} does not have privilege to delete post ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_USER };
-        }
-
-        log.success(
-          `User ${user.id} has permission to delete post ${params.postId}`,
-          "content-controller",
-        );
-
-        log.out(
-          `Updating post ${params.postId} content to ${body.content}`,
-          "content-controller",
-        );
-
-        const result = await prisma.post.update({
-          where: { CUID: params.postId, hidden: false },
-          data: { content: body.content, updated: new Date() },
-        });
-
-        if (!result) {
-          set.status = 403;
-          log.err(
-            403,
-            `User does not have privelge to modify`,
-            "user-controller",
-          );
-          return { error: ERROR_CODES.INVALID_USER };
-        }
-        log.success(
-          `Post ${params.postId} content updated to ${body.content}`,
-          "content-controller",
-        );
-
-        log.out(`Fetching post...`, "content-controller");
-
-        const post = await prisma.post.findUnique({
-          where: { CUID: params.postId },
-          include: {
-            user: { include: { settings: true } },
-            _count: { select: { upvotes: true, postReplies: true } },
-          },
-        });
-
-        if (!post) {
-          set.status = 404;
-          log.err(
-            404,
-            `Post not found: ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_ID };
-        }
-
-        log.success(`Fetched post!`, "content-controller");
-
-        return {
-          post: {
-            id: post.CUID,
-            content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-            time: post.time,
-            ...(post.updated ? { updated: post.updated } : {}),
-            upvotes: post._count.upvotes,
-            replyCount: post._count.postReplies,
-          },
-        };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
+        return { error: ERROR_CODES.INVALID_USER };
       }
+
+      log.success(
+        `User ${user.id} has permission to edit post ${params.postId}`,
+        "content-controller",
+      );
+
+      log.out(
+        `Updating post ${params.postId} content to ${body.content}`,
+        "content-controller",
+      );
+
+      const result = await prisma.post.update({
+        where: { CUID: params.postId, hidden: false },
+        data: { content: body.content, updated: new Date() },
+      });
+
+      if (!result) {
+        set.status = 500;
+        log.err(
+          500,
+          `could not update post ${params.postId}`,
+          "user-controller",
+        );
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
+
+      log.success(
+        `Post ${params.postId} content updated to ${body.content}`,
+        "content-controller",
+      );
+
+      log.out(`Fetching post...`, "content-controller");
+
+      const post = await prisma.post.findUnique({
+        where: { CUID: params.postId },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+      });
+
+      if (!post) {
+        set.status = 404;
+        log.err(404, `Post not found: ${params.postId}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      }
+
+      log.success(`Fetched post!`, "content-controller");
+
+      return {
+        post: {
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        },
+      };
     },
     {
       auth: true,
@@ -559,29 +548,25 @@ export const contentController = new Elysia()
         "content-controller",
       );
 
-      try {
-        log.out(`Getting post ${params.postId}`, "content-controller");
+      log.out(`Getting post ${params.postId}`, "content-controller");
 
-        const existing = await prisma.post.findUnique({
-          where: { CUID: params.postId },
-          include: { upvotes: true },
-        });
+      const existing = await prisma.post.findUnique({
+        where: { CUID: params.postId },
+        include: { upvotes: true },
+      });
 
-        if (!existing) {
-          set.status = 404;
-          log.err(
-            404,
-            `Post not found: ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_ID };
-        } else if (existing.upvotes.some((u) => u.id === user.id)) {
-          log.out(
-            `Upvoting post ${params.postId} from ${user.id}`,
-            "content-controller",
-          );
+      if (!existing) {
+        set.status = 404;
+        log.err(404, `Post not found: ${params.postId}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      } else if (existing.upvotes.some((u) => u.id === user.id)) {
+        log.out(
+          `Upvoting post ${params.postId} from ${user.id}`,
+          "content-controller",
+        );
 
-          await prisma.post.update({
+        var updated = await prisma.post
+          .update({
             where: {
               CUID: params.postId,
             },
@@ -590,19 +575,27 @@ export const contentController = new Elysia()
                 disconnect: user,
               },
             },
+          })
+          .catch(async () => {
+            updated = await prisma.post.update({
+              where: {
+                CUID: params.postId,
+              },
+              data: {
+                upvotes: {
+                  connect: user,
+                },
+              },
+            });
           });
+      } else {
+        log.out(
+          `Upvoting post ${params.postId} from ${user.id}`,
+          "content-controller",
+        );
 
-          log.success(
-            `Post ${params.postId} upvote toggled on by ${user.id}`,
-            "content-controller",
-          );
-        } else {
-          log.out(
-            `Upvoting post ${params.postId} from ${user.id}`,
-            "content-controller",
-          );
-
-          await prisma.post.update({
+        var updated = await prisma.post
+          .update({
             where: {
               CUID: params.postId,
             },
@@ -611,53 +604,66 @@ export const contentController = new Elysia()
                 connect: user,
               },
             },
+          })
+          .catch(async () => {
+            updated = await prisma.post.update({
+              where: {
+                CUID: params.postId,
+              },
+              data: {
+                upvotes: {
+                  disconnect: user,
+                },
+              },
+            });
           });
-
-          log.success(
-            `Post ${params.postId} upvote toggled off by ${user.id}`,
-            "content-controller",
-          );
-        }
-
-        log.out(`Fetching updated post...`, "content-controller");
-
-        const post = await prisma.post.findUnique({
-          where: { CUID: params.postId },
-          include: {
-            user: { include: { settings: true } },
-            _count: { select: { upvotes: true, postReplies: true } },
-          },
-        });
-
-        if (!post) {
-          set.status = 404;
-          log.err(
-            404,
-            `Post not found: ${params.postId}`,
-            "content-controller",
-          );
-          return { error: ERROR_CODES.INVALID_ID };
-        }
-
-        log.success(`Fetched updated post!`, "content-controller");
-
-        return {
-          post: {
-            id: post.CUID,
-            content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-            time: post.time,
-            ...(post.updated ? { updated: post.updated } : {}),
-            upvotes: post._count.upvotes,
-            replyCount: post._count.postReplies,
-          },
-        };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
       }
+
+      if (!updated) {
+        set.status = 500;
+        log.err(
+          500,
+          `Failed to update post ${params.postId} upvote by ${user.id}`,
+          "content-controller",
+        );
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
+
+      log.success(
+        `Post ${params.postId} upvote toggled by ${user.id}`,
+        "content-controller",
+      );
+
+      log.out(`Fetching updated post...`, "content-controller");
+
+      const post = await prisma.post.findUnique({
+        where: { CUID: params.postId },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+      });
+
+      if (!post) {
+        set.status = 404;
+        log.err(404, `Post not found: ${params.postId}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      }
+
+      log.success(`Fetched updated post!`, "content-controller");
+
+      return {
+        post: {
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        },
+      };
     },
     {
       auth: true,
@@ -684,6 +690,7 @@ export const contentController = new Elysia()
       const existing = await prisma.post.findUnique({
         where: { CUID: params.postId, hidden: false },
       });
+
       if (!existing) {
         set.status = 404;
         log.err(404, `Post not found: ${params.postId}`, "content-controller");
@@ -706,13 +713,13 @@ export const contentController = new Elysia()
 
       log.out(`Deleting post ${params.postId}`, "content-controller");
 
-      try {
-        await prisma.post.delete({
-          where: { CUID: params.postId, userID: user.id },
-        });
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Invalid field: ${e}`, "content-controller");
+      let del = await prisma.post.delete({
+        where: { CUID: params.postId, userID: user.id },
+      });
+
+      if (!del) {
+        set.status = 500;
+        log.err(500, `Invalid field: ${del}`, "content-controller");
         return { error: ERROR_CODES.INVALID_FIELD };
       }
 
@@ -753,6 +760,7 @@ export const contentController = new Elysia()
         log.err(404, `Invalid post ID: ${params.postId}`, "content-controller");
         return { error: ERROR_CODES.INVALID_ID };
       }
+
       log.success(`Found post ${params.postId}`, "content-controller");
 
       const replies = await prisma.post.findMany({
@@ -761,8 +769,9 @@ export const contentController = new Elysia()
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
         },
-        orderBy: { time: "asc" },
+        orderBy: { time: "desc" },
       });
+
       log.success(
         `Fetched ${replies.length} replies for post ${params.postId}`,
         "content-controller",

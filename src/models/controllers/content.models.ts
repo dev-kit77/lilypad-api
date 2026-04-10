@@ -45,6 +45,7 @@ export const spatialContentGetResponse = {
   200: t.Object({
     posts: t.Array(spatialPostItem),
   }),
+  400: t.Object({ error: t.String() }),
 };
 
 export const postCreateBody = t.Object({
