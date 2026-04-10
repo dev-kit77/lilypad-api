@@ -200,6 +200,14 @@ describe("User endpoints", () => {
       const res = await authedFetch("/user/non-existent-id", session.cookie);
       expect(res.status).toBe(404);
     });
+
+    it("returns 404 for an invalid format userId", async () => {
+      const res = await authedFetch(
+        "/user/invalid-cuid-format",
+        session.cookie,
+      );
+      expect(res.status).toBe(404);
+    });
   });
 
   describe("PUT /api/user (authenticated)", () => {
@@ -272,6 +280,22 @@ describe("User endpoints", () => {
       const res = await authedFetch("/user", session.cookie, {
         method: "PUT",
         body: JSON.stringify({ username: "" }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when username exceeds reasonable length", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ username: "a".repeat(300) }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when status exceeds reasonable length", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ status: "a".repeat(1000) }),
       });
       expect(res.status).toBe(400);
     });
@@ -366,7 +390,7 @@ describe("User endpoints", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 404 when reporting non-existent user", async () => {
+    it("returns 404 when reporting non-existent user (backend returns validation error)", async () => {
       const res = await authedFetch(
         "/user/non-existent-user-id/report",
         reportSession.cookie,

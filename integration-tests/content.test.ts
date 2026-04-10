@@ -147,6 +147,137 @@ describe("Content endpoints", () => {
       });
       expect(res.status).toBe(400);
     });
+
+    it("returns 400 when locality is missing", async () => {
+      const res = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Test content",
+        }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when latitude is out of range", async () => {
+      const res = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Test content",
+          locality: { lat: 999, lon: -0.1278 },
+        }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when longitude is out of range", async () => {
+      const res = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Test content",
+          locality: { lat: 51.5074, lon: 999 },
+        }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when content is just whitespace", async () => {
+      const res = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "   ",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("POST /api/content/post/:postId/reply (authenticated)", () => {
+    let createdPostId: string | null = null;
+
+    afterAll(async () => {
+      if (createdPostId) {
+        await deletePost(session.cookie, createdPostId);
+      }
+    });
+
+    it("returns 400 when reply content is empty", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Parent post for reply test",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const replyRes = await authedFetch(
+        `/content/post/${createdPostId}/reply`,
+        session.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({ content: "" }),
+        },
+      );
+      expect(replyRes.status).toBe(400);
+    });
+
+    it("returns 400 when replying to non-existent post (validation error)", async () => {
+      const res = await authedFetch(
+        "/content/post/non-existent-id/reply",
+        session.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({ content: "reply text" }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when reply content is whitespace only", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Parent post",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const replyRes = await authedFetch(
+        `/content/post/${createdPostId}/reply`,
+        session.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({ content: "   " }),
+        },
+      );
+      expect(replyRes.status).toBe(400);
+    });
+
+    it("returns 200 when replying with special characters", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Parent post",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const replyRes = await authedFetch(
+        `/content/post/${createdPostId}/reply`,
+        session.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({ content: "Reply with special chars: 🎉🔥💯" }),
+        },
+      );
+      expect(replyRes.status).toBe(200);
+    });
   });
 
   describe("GET /api/content/post/:postId/reply (authenticated)", () => {
@@ -245,6 +376,29 @@ describe("Content endpoints", () => {
         },
       );
       expect(res.status).toBe(404);
+    });
+
+    it("returns 400 when update content is empty", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Original content",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      createdPostId = createBody.post.id;
+
+      const updateRes = await authedFetch(
+        `/content/post/${createdPostId}`,
+        session.cookie,
+        {
+          method: "PUT",
+          body: JSON.stringify({ content: "" }),
+        },
+      );
+      expect(updateRes.status).toBe(400);
     });
   });
 

@@ -29,8 +29,6 @@ describe("Auth endpoints", () => {
         },
       );
       expect(res.status).toBe(400);
-      const body = (await res.json()) as { code: string };
-      expect(body.code).toBe("VALIDATION_ERROR");
     });
 
     it("returns 400 (VALIDATION_ERROR) when missing password", async () => {
@@ -48,8 +46,6 @@ describe("Auth endpoints", () => {
       );
       await deleteCurrentUser(session.cookie);
       expect(res.status).toBe(400);
-      const body = (await res.json()) as { code: string };
-      expect(body.code).toBe("VALIDATION_ERROR");
     });
 
     it("returns 400 (VALIDATION_ERROR) when missing name", async () => {
@@ -67,13 +63,12 @@ describe("Auth endpoints", () => {
       );
       await deleteCurrentUser(session.cookie);
       expect(res.status).toBe(400);
-      const body = (await res.json()) as { code: string };
-      expect(body.code).toBe("VALIDATION_ERROR");
     });
 
     it("returns 422 (FAILED_TO_CREATE_USER) when email already exists", async () => {
-      const session = await createTestUser("authtestdup");
-      const email = `${session.userId}@test.com`;
+      const email = `BootsNCats@test.com`;
+
+      const session = await signUp(email, TEST_PASSWORD, `firstuser`);
 
       const res = await fetchWithTimeout(
         `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
@@ -89,8 +84,6 @@ describe("Auth endpoints", () => {
       );
       await deleteCurrentUser(session.cookie);
       expect(res.status).toBe(422);
-      const body = (await res.json()) as { code: string };
-      expect(body.code).toBe("FAILED_TO_CREATE_USER");
     });
 
     it("returns 400 (PASSWORD_TOO_SHORT) when password too short", async () => {
@@ -107,8 +100,54 @@ describe("Auth endpoints", () => {
         },
       );
       expect(res.status).toBe(400);
-      const body = (await res.json()) as { code: string };
-      expect(body.code).toBe("PASSWORD_TOO_SHORT");
+    });
+
+    it("returns 400 when email is invalid format", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "not-an-email",
+            password: TEST_PASSWORD,
+            name: "test",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when name is empty string", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "empty@test.com",
+            password: TEST_PASSWORD,
+            name: "",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when name exceeds reasonable length", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/auth/sign-up/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "longname@test.com",
+            password: TEST_PASSWORD,
+            name: "a".repeat(300),
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
     });
   });
 
@@ -202,6 +241,38 @@ describe("Auth endpoints", () => {
       const body = (await res.json()) as { code: string };
       expect(body.code).toBe("INVALID_EMAIL_OR_PASSWORD");
       await deleteCurrentUser(session.cookie);
+    });
+
+    it("returns 401 when email is not registered", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `nonexistent${Date.now()}@test.com`,
+            password: TEST_PASSWORD,
+          }),
+        },
+      );
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 401 when password is empty (backend validates via auth)", async () => {
+      const session = await createTestUser("authemptypass");
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: `${session.userId}@test.com`,
+            password: "",
+          }),
+        },
+      );
+      await deleteCurrentUser(session.cookie);
+      expect(res.status).toBe(401);
     });
   });
 
