@@ -33,6 +33,7 @@ export const contentController = new Elysia()
       log.out(`GET request at /content`, "content-controller");
 
       log.out(`Querying posts for user ${user.id}`, "content-controller");
+
       const rows = await prisma.post.findMany({
         where: { userID: user.id, hidden: false },
         include: {
@@ -85,93 +86,115 @@ export const contentController = new Elysia()
     "/content/post",
     async ({ user, body, set }) => {
       log.out(`POST request at /content/post`, "content-controller");
-      try {
-        const { lat, lon } = body.locality;
 
-        if (body.content.trim().length === 0) {
-          set.status = 400;
-          return { error: ERROR_CODES.INVALID_FIELD };
-        }
+      const { lat, lon } = body.locality;
 
-        // geog type is Unsupported in Prisma so all location reads/writes use raw SQL
-        log.out(
-          `Querying geolocation: lat=${lat}, lon=${lon}`,
-          "content-controller",
-        );
-        const existing = await prisma.$queryRaw<{ CUID: string }[]>`
-                SELECT "CUID" FROM "location"
-                WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
-                LIMIT 1
-            `;
-
-        let locationCUID: string;
-        if (existing.length > 0 && existing[0]) {
-          log.success(
-            `Found existing location: CUID=${existing[0].CUID}`,
-            "content-controller",
-          );
-          locationCUID = existing[0].CUID;
-        } else {
-          locationCUID = createId();
-          log.out(
-            `No existing location found, creating new CUID=${locationCUID}`,
-            "content-controller",
-          );
-          await prisma.$executeRaw`
-                    INSERT INTO "location" ("CUID", "geog")
-                    VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography)
-                `;
-          log.success(
-            `Created new location: CUID=${locationCUID}`,
-            "content-controller",
-          );
-        }
-
-        log.out(`Creating post...`, "content-controller");
-        const created = await prisma.post.create({
-          data: {
-            userID: user.id,
-            content: body.content,
-            locationID: locationCUID,
-          },
-        });
-        log.success(`Created post!`, "content-controller");
-
-        log.out(`Fetching post...`, "content-controller");
-
-        const post = await prisma.post.findUnique({
-          where: { CUID: created.CUID },
-          include: {
-            user: { include: { settings: true } },
-            _count: { select: { upvotes: true, postReplies: true } },
-          },
-        });
-
-        if (!post) {
-          set.status = 404;
-          log.err(404, `Post not found: ${created.CUID}`, "content-controller");
-          return { error: ERROR_CODES.INVALID_ID };
-        }
-
-        log.success(`Fetched post!`, "content-controller");
-
-        return {
-          post: {
-            id: post.CUID,
-            content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-            time: post.time,
-            ...(post.updated ? { updated: post.updated } : {}),
-            upvotes: post._count.upvotes,
-            replyCount: post._count.postReplies,
-          },
-        };
-      } catch (e) {
+      if (body.content.trim().length === 0 || !body.locality || !lat || !lon) {
         set.status = 400;
-        log.err(400, `Failed to create post: ${e}`, "content-controller");
         return { error: ERROR_CODES.INVALID_FIELD };
       }
+      const { lat, lon } = body.locality;
+
+      // geog type is Unsupported in Prisma so all location reads/writes use raw SQL
+      log.out(
+        `Querying geolocation: lat=${lat}, lon=${lon}`,
+        "content-controller",
+      );
+
+      let existing: { CUID: string }[];
+
+      try {
+        existing = await prisma.$queryRaw<{ CUID: string }[]>`
+                  SELECT "CUID" FROM "location"
+                  WHERE ST_DWithin(geog, ST_MakePoint(${lon}, ${lat})::geography, 1)
+                  LIMIT 1`;
+      } catch (e) {
+        log.err(500, `Error querying geolocation: ${e}`, "content-controller");
+        set.status = 500;
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
+
+      let locationCUID: string;
+
+      if (existing.length > 0 && existing[0]) {
+        log.success(
+          `Found existing location: CUID=${existing[0].CUID}`,
+          "content-controller",
+        );
+        locationCUID = existing[0].CUID;
+      } else {
+        locationCUID = createId();
+        log.out(
+          `No existing location found, creating new CUID=${locationCUID}`,
+          "content-controller",
+        );
+
+        try {
+          await prisma.$executeRaw`
+                      INSERT INTO "location" ("CUID", "geog")
+                      VALUES (${locationCUID}, ST_MakePoint(${lon}, ${lat})::geography)
+                      ON CONFLICT DO NOTHING
+                      RETURNING "CUID"
+                  `;
+        } catch (e) {
+          set.status = 500;
+          log.err(500, `Failed to create location: ${e}`, "content-controller");
+          return { error: ERROR_CODES.INTERNAL_SERVER };
+        }
+
+        log.success(
+          `Created new location: CUID=${locationCUID}`,
+          "content-controller",
+        );
+      }
+
+      log.out(`Creating post...`, "content-controller");
+      const created = await prisma.post.create({
+        data: {
+          userID: user.id,
+          content: body.content,
+          locationID: locationCUID,
+        },
+      });
+
+      if (!created) {
+        set.status = 500;
+        log.err(500, `Failed to create post`, "content-controller");
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
+
+      log.success(`Created post!`, "content-controller");
+
+      log.out(`Fetching post...`, "content-controller");
+
+      const post = await prisma.post.findUnique({
+        where: { CUID: created.CUID },
+        include: {
+          user: { include: { settings: true } },
+          _count: { select: { upvotes: true, postReplies: true } },
+        },
+      });
+
+      if (!post) {
+        set.status = 404;
+        log.err(404, `Post not found: ${created.CUID}`, "content-controller");
+        return { error: ERROR_CODES.INVALID_ID };
+      }
+
+      log.success(`Fetched post!`, "content-controller");
+
+      return {
+        post: {
+          id: post.CUID,
+          content: post.content,
+          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
+          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          replyCount: post._count.postReplies,
+        },
+      };
     },
     {
       auth: true,
