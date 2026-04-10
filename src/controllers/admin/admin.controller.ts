@@ -143,7 +143,7 @@ export const adminController = new Elysia()
     "/content/post/:postId/special",
     async ({ params, set }) => {
       log.out(
-        `POST request at /content/post/${params.postId}`,
+        `GET request at /content/post/${params.postId}/special`,
         "content-controller",
       );
 
@@ -200,7 +200,7 @@ export const adminController = new Elysia()
     "/content/post/:postId/special",
     async ({ params, set }) => {
       log.out(
-        `PUT request at /content/post/${params.postId}`,
+        `PUT request at /content/post/${params.postId}/special`,
         "content-controller",
       );
 
