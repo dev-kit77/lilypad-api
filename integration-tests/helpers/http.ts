@@ -87,6 +87,16 @@ export function authedFetch(
 }
 
 /** Deletes the signed-in user via DELETE /api/user (same DB path as the running API). */
+export async function signOut(cookie: string): Promise<void> {
+  await fetchWithTimeout(apiUrl("/auth/sign-out"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookie,
+    },
+  });
+}
+
 export async function deleteCurrentUser(cookie: string): Promise<void> {
   const res = await authedFetch("/user", cookie, { method: "DELETE" });
   if (!res.ok && res.status !== 404) {
