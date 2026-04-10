@@ -97,6 +97,15 @@ describe("User endpoints", () => {
     });
   });
 
+  describe("GET /api/user/gdpr-sar (unauthenticated)", () => {
+    it("returns 401", async () => {
+      const res = await fetchWithTimeout(
+        `${process.env.TEST_API_BASE}/api/user/gdpr-sar`,
+      );
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe("GET /api/user/gdpr-sar (authenticated)", () => {
     let reporterSession: AuthSession | null = null;
     let adminSession: AuthSession | null = null;
@@ -156,6 +165,24 @@ describe("User endpoints", () => {
       expect(firstReport).not.toHaveProperty("userID");
       expect(firstReport.reporter).toBe("ANONYMISED");
     });
+
+    it("returns 200 with posts array in SAR response", async () => {
+      const res = await authedFetch("/user/gdpr-sar", session.cookie);
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("posts");
+      expect(Array.isArray(body.posts)).toBe(true);
+    });
+
+    it("returns 200 with reportsFiled array in SAR response", async () => {
+      const res = await authedFetch("/user/gdpr-sar", session.cookie);
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("reportsFiled");
+      expect(Array.isArray(body.reportsFiled)).toBe(true);
+    });
   });
 
   describe("GET /api/user/:userId (authenticated)", () => {
@@ -184,6 +211,174 @@ describe("User endpoints", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as Record<string, unknown>;
       expect(body.status).toBe("OK");
+    });
+
+    it("returns 200 when updating status", async () => {
+      const uniqueStatus = `Status ${Date.now()}`;
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ status: uniqueStatus }),
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body.status).toBe("OK");
+
+      const getRes = await authedFetch("/user", session.cookie);
+      const getBody = (await getRes.json()) as Record<string, unknown>;
+      expect(getBody.status as string).toBe(uniqueStatus);
+    });
+
+    it("returns 200 when updating settings (dark mode)", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ settings: { dark: true } }),
+      });
+      expect(res.status).toBe(200);
+
+      const getRes = await authedFetch("/user", session.cookie);
+      const getBody = (await getRes.json()) as Record<string, unknown>;
+      expect(
+        (getBody.settings as Record<string, unknown>).dark as boolean,
+      ).toBe(true);
+    });
+
+    it("returns 200 when updating settings (anon mode)", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ settings: { anon: true } }),
+      });
+      expect(res.status).toBe(200);
+
+      const getRes = await authedFetch("/user", session.cookie);
+      const getBody = (await getRes.json()) as Record<string, unknown>;
+      expect(
+        (getBody.settings as Record<string, unknown>).anon as boolean,
+      ).toBe(true);
+    });
+
+    it("returns 200 when updating multiple fields at once", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({
+          username: `multiupdate${Date.now()}`,
+          status: "Testing multiple updates",
+          settings: { anon: false, dark: false },
+        }),
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("returns 400 when updating with invalid empty username", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ username: "" }),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 200 when updating with unknown field (ignored)", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ invalidField: "test" }),
+      });
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe("POST /api/user/:userId/report (authenticated)", () => {
+    let targetUserSession: AuthSession;
+    let reportSession: AuthSession;
+
+    beforeAll(async () => {
+      targetUserSession = await createTestUser("reporttarget");
+      reportSession = await createTestUser("reporter");
+    });
+
+    afterAll(async () => {
+      if (targetUserSession?.cookie) {
+        await deleteCurrentUser(targetUserSession.cookie);
+      }
+      if (reportSession?.cookie) {
+        await deleteCurrentUser(reportSession.cookie);
+      }
+    });
+
+    it("returns 200 when reporting a user", async () => {
+      const res = await authedFetch(
+        `/user/${targetUserSession.userId}/report`,
+        reportSession.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "harassment",
+            content: "This user is harassing me",
+          }),
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Record<string, unknown>;
+      expect(body).toHaveProperty("report");
+      expect((body.report as Record<string, unknown>).reason).toBe(
+        "harassment",
+      );
+    });
+
+    it("returns 400 when missing reason", async () => {
+      const res = await authedFetch(
+        `/user/${targetUserSession.userId}/report`,
+        reportSession.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            content: "Test content",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when missing content", async () => {
+      const res = await authedFetch(
+        `/user/${targetUserSession.userId}/report`,
+        reportSession.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "spam",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 when reason is empty", async () => {
+      const res = await authedFetch(
+        `/user/${targetUserSession.userId}/report`,
+        reportSession.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "",
+            content: "Test content",
+          }),
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 404 when reporting non-existent user", async () => {
+      const res = await authedFetch(
+        "/user/non-existent-user-id/report",
+        reportSession.cookie,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "spam",
+            content: "Test",
+          }),
+        },
+      );
+      expect(res.status).toBe(404);
     });
   });
 
