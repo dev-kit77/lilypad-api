@@ -21,6 +21,7 @@ export const userController = new Elysia()
       log.out(`GET request at /user/gdpr-sar`, "user-controller");
 
       log.out(`Querying all userdata for ${user.id}`, "user-controller");
+
       const [dbUser, userPosts, reportsFiled, reportsAgainst] =
         await Promise.all([
           prisma.user.findUnique({
@@ -89,6 +90,7 @@ export const userController = new Elysia()
       log.out(`GET request at /user`, "user-controller");
 
       log.out(`User ${user.id} requested their profile`, "user-controller");
+
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
         include: { profile: true, settings: true },
@@ -101,16 +103,21 @@ export const userController = new Elysia()
       }
 
       log.success(`User ${user.id} profile retrieved`, "user-controller");
+
       return {
-        userId: dbUser.id,
-        username: dbUser.name,
-        ...(dbUser.profile?.status !== ""
-          ? { status: dbUser.profile?.status }
-          : {}),
-        ...(dbUser.profile?.bio !== "" ? { status: dbUser.profile?.bio } : {}),
-        settings: {
-          dark: dbUser.settings?.dark ?? false,
-          anon: dbUser.settings?.anon ?? false,
+        user: {
+          userId: dbUser.id,
+          username: dbUser.name,
+          ...(dbUser.profile?.status !== ""
+            ? { status: dbUser.profile?.status }
+            : {}),
+          ...(dbUser.profile?.bio !== ""
+            ? { status: dbUser.profile?.bio }
+            : {}),
+          settings: {
+            dark: dbUser.settings?.dark ?? false,
+            anon: dbUser.settings?.anon ?? false,
+          },
         },
       };
     },
@@ -127,20 +134,45 @@ export const userController = new Elysia()
     "/user",
     async ({ user, body, set }) => {
       log.out(`PUT request at /user`, "user-controller");
-      try {
+
+      if (
+        (!body.bio || body.bio.trim().length === 0) &&
+        (!body.username || body.username.trim().length === 0) &&
+        (!body.settings || JSON.stringify(body.settings) === "{}") &&
+        (!body.status || JSON.stringify(body.status).length === 0)
+      ) {
+        set.status = 400;
+        log.err(400, "Invalid field in user update body", "user-controller");
+        return { error: ERROR_CODES.INVALID_FIELD };
+      }
+
+      prisma.$transaction(async (tx) => {
         if (body.username) {
           if (body.username.trim().length === 0) {
             set.status = 400;
             return { error: ERROR_CODES.INVALID_FIELD };
           }
+
           log.out(
             `User ${user.id} updating username to ${body.username}`,
             "user-controller",
           );
-          await prisma.user.update({
+
+          const updatedUser = await tx.user.update({
             where: { id: user.id },
             data: { name: body.username },
           });
+
+          if (!updatedUser) {
+            set.status = 500;
+            log.err(
+              500,
+              `Internal server error updating username for user ${user.id}`,
+              "user-controller",
+            );
+            return { error: ERROR_CODES.INTERNAL_SERVER };
+          }
+
           log.success(
             `User ${user.id} updated username to ${body.username}`,
             "user-controller",
@@ -148,14 +180,31 @@ export const userController = new Elysia()
         }
 
         if (body.bio) {
+          if (body.bio.trim().length === 0) {
+            set.status = 400;
+            return { error: ERROR_CODES.INVALID_FIELD };
+          }
+
           log.out(
             `User ${user.id} updating bio to ${body.bio}`,
             "user-controller",
           );
-          await prisma.userProfile.update({
+
+          const updatedUser = await tx.userProfile.update({
             where: { userID: user.id },
             data: { bio: body.bio },
           });
+
+          if (!updatedUser) {
+            set.status = 500;
+            log.err(
+              500,
+              `Internal server error updating username for user ${user.id}`,
+              "user-controller",
+            );
+            return { error: ERROR_CODES.INTERNAL_SERVER };
+          }
+
           log.success(
             `User ${user.id} updated bio to ${body.bio}`,
             "user-controller",
@@ -167,14 +216,27 @@ export const userController = new Elysia()
             set.status = 400;
             return { error: ERROR_CODES.INVALID_FIELD };
           }
+
           log.out(
             `User ${user.id} updating status to ${body.status}`,
             "user-controller",
           );
-          await prisma.userProfile.update({
+
+          const updatedUser = await tx.userProfile.update({
             where: { userID: user.id },
             data: { status: body.status },
           });
+
+          if (!updatedUser) {
+            set.status = 500;
+            log.err(
+              500,
+              `User ${user.id} failed to update status to ${body.status}`,
+              "user-controller",
+            );
+            return { error: ERROR_CODES.INTERNAL_SERVER };
+          }
+
           log.success(
             `User ${user.id} updated status to ${body.status}`,
             "user-controller",
@@ -186,33 +248,62 @@ export const userController = new Elysia()
             set.status = 400;
             return { error: ERROR_CODES.INVALID_FIELD };
           }
+
           log.out(
             `User ${user.id} updating settings to ${JSON.stringify(body.settings)}`,
             "user-controller",
           );
-          await prisma.userSettings.upsert({
+
+          const updatedUser = await tx.userSettings.upsert({
             where: { userID: user.id },
             update: body.settings,
             create: { userID: user.id, ...body.settings },
           });
+
+          if (!updatedUser) {
+            set.status = 500;
+            log.err(
+              500,
+              `User ${user.id} failed to update status to ${body.status}`,
+              "user-controller",
+            );
+            return { error: ERROR_CODES.INTERNAL_SERVER };
+          }
+
           log.success(
             `User ${user.id} updated settings to ${JSON.stringify(body.settings)}`,
             "user-controller",
           );
         }
+      });
 
-        if (!body.username && !body.bio && !body.status && !body.settings) {
-          set.status = 400;
-          log.err(400, `Invalid field in PUT /user`, "user-controller");
-          return { error: ERROR_CODES.INVALID_FIELD };
-        }
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { profile: true, settings: true },
+      });
 
-        return { status: "OK" };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Invalid field in PUT /user`, "user-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
+      if (!updatedUser) {
+        set.status = 404;
+        log.err(404, `User ${user.id} not found`, "user-controller");
+        return { error: ERROR_CODES.INVALID_USER };
       }
+
+      return {
+        user: {
+          userId: updatedUser.id,
+          username: updatedUser.name,
+          ...(updatedUser.profile?.status !== ""
+            ? { status: updatedUser.profile?.status }
+            : {}),
+          ...(updatedUser.profile?.bio !== ""
+            ? { bio: updatedUser.profile?.bio }
+            : {}),
+          settings: {
+            dark: updatedUser.settings?.dark ?? false,
+            anon: updatedUser.settings?.anon ?? false,
+          },
+        },
+      };
     },
     {
       auth: true,
@@ -230,6 +321,7 @@ export const userController = new Elysia()
       log.out(`DELETE request at /user`, "user-controller");
 
       log.out(`Quereing User ${user.id}`, "user-controller");
+
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
       });
@@ -239,6 +331,7 @@ export const userController = new Elysia()
         log.err(404, `User ${user.id} not found`, "user-controller");
         return { error: ERROR_CODES.INVALID_USER };
       }
+
       log.success(`User ${user.id} found`, "user-controller");
 
       const anonymisedName = `deleted-user-${user.id.slice(0, 8)}`;
@@ -248,7 +341,8 @@ export const userController = new Elysia()
         `Deleting User ${user.id} and anonymising references`,
         "user-controller",
       );
-      await prisma.$transaction([
+
+      const del = await prisma.$transaction([
         prisma.session.deleteMany({
           where: { userId: user.id },
         }),
@@ -288,6 +382,13 @@ export const userController = new Elysia()
           },
         }),
       ]);
+
+      if (!del) {
+        set.status = 500;
+        log.err(500, `User ${user.id} failed to delete`, "user-controller");
+        return { error: ERROR_CODES.INTERNAL_SERVER };
+      }
+
       log.success(`User ${user.id} deleted`, "user-controller");
 
       return { status: "OK" };
@@ -308,6 +409,7 @@ export const userController = new Elysia()
       log.out(`GET request at /user/${params.userId}`, "user-controller");
 
       log.out(`Querying profile for ${params.userId}`, "user-controller");
+
       const profile = await prisma.userProfile.findUnique({
         where: { userID: params.userId },
       });
@@ -349,40 +451,46 @@ export const userController = new Elysia()
         return { error: ERROR_CODES.INVALID_ID };
       }
 
-      try {
-        log.out(`Creating Report for ${params.userId}`, "user-controller");
-        const report = await prisma.report.create({
-          data: {
-            userID: user.id,
-            reportedUserID: params.userId,
-            reason: body.reason,
-            content: body.content,
-          },
-        });
-        log.success(`Report filed for ${params.userId}`, "user-controller");
+      log.out(`Creating Report for ${params.userId}`, "user-controller");
 
-        return {
-          report: {
-            id: report.CUID,
-            userID: report.userID,
-            reason: report.reason,
-            content: report.content,
-            time: report.time,
-            resolved: report.resolved,
-            ...(report.action ? { action: report.action } : {}),
-            ...(report.reportedPostID
-              ? { reportedPostID: report.reportedPostID }
-              : {}),
-            ...(report.reportedUserID
-              ? { reportedUserID: report.reportedUserID }
-              : {}),
-          },
-        };
-      } catch (e) {
-        set.status = 400;
-        log.err(400, `Invalid field: ${e}`, "user-controller");
-        return { error: ERROR_CODES.INVALID_FIELD };
+      const report = await prisma.report.create({
+        data: {
+          userID: user.id,
+          reportedUserID: params.userId,
+          reason: body.reason,
+          content: body.content,
+        },
+      });
+
+      if (!report) {
+        set.status = 500;
+        log.err(
+          500,
+          `Report for ${params.userId} failed to create`,
+          "user-controller",
+        );
+        return { error: ERROR_CODES.INTERNAL_SERVER };
       }
+
+      log.success(`Report filed for ${params.userId}`, "user-controller");
+
+      return {
+        report: {
+          id: report.CUID,
+          userID: report.userID,
+          reason: report.reason,
+          content: report.content,
+          time: report.time,
+          resolved: report.resolved,
+          ...(report.action ? { action: report.action } : {}),
+          ...(report.reportedPostID
+            ? { reportedPostID: report.reportedPostID }
+            : {}),
+          ...(report.reportedUserID
+            ? { reportedUserID: report.reportedUserID }
+            : {}),
+        },
+      };
     },
     {
       auth: true,

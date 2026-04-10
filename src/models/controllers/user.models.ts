@@ -15,7 +15,7 @@ export const userData = t.Object({
 });
 
 export const userGetResponse = {
-  200: userData,
+  200: t.Object({ user: userData }),
   404: t.Object({
     error: t.String(),
   }),
@@ -34,7 +34,7 @@ export const userUpdateBody = t.Object({
 });
 
 export const userUpdateResponse = {
-  200: t.Object({ status: t.String() }),
+  200: t.Object({ user: userData }),
   400: t.Object({ error: t.String() }),
 };
 
