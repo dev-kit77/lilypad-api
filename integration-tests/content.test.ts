@@ -5,6 +5,8 @@ import {
   deletePost,
   deleteReport,
   fetchWithTimeout,
+  promoteUserToAdminForTest,
+  signUp,
   type AuthSession,
 } from "./helpers/http";
 import {
@@ -528,14 +530,22 @@ describe("Content endpoints", () => {
         }),
       });
       expect(createRes.status).toBe(200);
-      const createBody = (await createRes.json()) as { post: { id: string; upvotes: number } };
+      const createBody = (await createRes.json()) as {
+        post: { id: string; upvotes: number };
+      };
       const postId = createBody.post.id;
 
-      const upvoteRes = await authedFetch(`/content/post/${postId}/upvote`, session.cookie, {
-        method: "PUT",
-      });
+      const upvoteRes = await authedFetch(
+        `/content/post/${postId}/upvote`,
+        session.cookie,
+        {
+          method: "PUT",
+        },
+      );
       expect(upvoteRes.status).toBe(200);
-      const upvoteBody = (await upvoteRes.json()) as { post: { upvotes: number } };
+      const upvoteBody = (await upvoteRes.json()) as {
+        post: { upvotes: number };
+      };
       expect(upvoteBody.post.upvotes).toBe(1);
     });
 
@@ -555,18 +565,28 @@ describe("Content endpoints", () => {
         method: "PUT",
       });
 
-      const toggleRes = await authedFetch(`/content/post/${postId}/upvote`, session.cookie, {
-        method: "PUT",
-      });
+      const toggleRes = await authedFetch(
+        `/content/post/${postId}/upvote`,
+        session.cookie,
+        {
+          method: "PUT",
+        },
+      );
       expect(toggleRes.status).toBe(200);
-      const toggleBody = (await toggleRes.json()) as { post: { upvotes: number } };
+      const toggleBody = (await toggleRes.json()) as {
+        post: { upvotes: number };
+      };
       expect(toggleBody.post.upvotes).toBe(0);
     });
 
     it("returns 404 for non-existent post", async () => {
-      const res = await authedFetch("/content/post/non-existent-id/upvote", session.cookie, {
-        method: "PUT",
-      });
+      const res = await authedFetch(
+        "/content/post/non-existent-id/upvote",
+        session.cookie,
+        {
+          method: "PUT",
+        },
+      );
       expect(res.status).toBe(404);
     });
   });
@@ -876,6 +896,90 @@ describe("Content endpoints", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as { post: { upvotes: number } };
       expect(body.post.upvotes).toBe(1);
+    });
+  });
+
+  describe("Hidden posts", () => {
+    let adminSession: AuthSession;
+
+    beforeAll(async () => {
+      adminSession = await createTestAdmin();
+    });
+
+    afterAll(async () => {
+      if (adminSession?.cookie) {
+        await deleteCurrentUser(adminSession.cookie);
+      }
+    });
+
+    it("hidden post is not returned in GET /api/content", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Post to hide",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
+
+      await authedFetch(
+        `/content/post/${postId}/special`,
+        adminSession.cookie,
+        { method: "PUT" },
+      );
+
+      const listRes = await authedFetch("/content", session.cookie);
+      expect(listRes.status).toBe(200);
+      const listBody = (await listRes.json()) as {
+        posts: Array<{ id: string }>;
+      };
+      expect(listBody.posts.map((p) => p.id)).not.toContain(postId);
+    });
+
+    it("hidden post returns 403 at GET /api/content/post/:postId for non-owner", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "Another post to hide",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
+
+      await authedFetch(
+        `/content/post/${postId}/special`,
+        adminSession.cookie,
+        { method: "PUT" },
+      );
+
+      const res = await authedFetch(`/content/post/${postId}`, session.cookie);
+      expect(res.status).toBe(403);
+    });
+
+    it("hidden post returns 403 for owner", async () => {
+      const createRes = await authedFetch("/content/post", session.cookie, {
+        method: "POST",
+        body: JSON.stringify({
+          content: "My hidden post",
+          locality: { lat: 51.5074, lon: -0.1278 },
+        }),
+      });
+      expect(createRes.status).toBe(200);
+      const createBody = (await createRes.json()) as { post: { id: string } };
+      const postId = createBody.post.id;
+
+      await authedFetch(
+        `/content/post/${postId}/special`,
+        adminSession.cookie,
+        { method: "PUT" },
+      );
+
+      const res = await authedFetch(`/content/post/${postId}`, session.cookie);
+      expect(res.status).toBe(403);
     });
   });
 });
