@@ -60,7 +60,7 @@ export const userDeleteResponse = {
 
 export const userPublicGetResponse = {
   200: t.Object({
-    name: t.String(),
+    username: t.String(),
     bio: t.String(),
     status: t.String(),
   }),
