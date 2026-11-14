@@ -65,7 +65,7 @@ export const contentController = new Elysia()
 
       return {
         posts: rootPosts.map(toItem),
-        comments: replyPosts.map(toItem),
+        replies: replyPosts.map(toItem),
       };
     },
     {

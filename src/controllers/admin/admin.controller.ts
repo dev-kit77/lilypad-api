@@ -54,7 +54,7 @@ export const adminController = new Elysia()
         id: post.CUID,
         content: post.content,
         ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        username: post.user.settings?.anon ? "Anonymous" : post.user.name,
         time: post.time,
         ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
@@ -67,7 +67,7 @@ export const adminController = new Elysia()
 
       return {
         posts: rootPosts.map(toItem),
-        comments: replyPosts.map(toItem),
+        replies: replyPosts.map(toItem),
       };
     },
     {
@@ -171,7 +171,7 @@ export const adminController = new Elysia()
             id: post.CUID,
             content: post.content,
             ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            username: post.user.settings?.anon ? "Anonymous" : post.user.name,
             time: post.time,
             ...(post.updated ? { updated: post.updated } : {}),
             upvotes: post._count.upvotes,
