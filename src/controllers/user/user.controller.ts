@@ -362,9 +362,12 @@ export const userController = new Elysia()
       log.success(`Profile found for ${params.userId}`, "user-controller");
 
       return {
-        username: profile.name,
-        bio: profile.bio,
-        status: profile.status,
+        user: {
+          userId: profile.userID,
+          username: profile.name,
+          bio: profile.bio,
+          status: profile.status,
+          }
       };
     },
     {

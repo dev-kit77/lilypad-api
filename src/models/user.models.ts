@@ -1,6 +1,12 @@
 import { t } from "elysia";
-import { postItem } from "./content.models";
 import { reportItem } from "./admin.models";
+
+export const userDataPublic = t.Object({
+  userId: t.String(),
+  username: t.String(),
+  status: t.Optional(t.String()),
+  bio: t.Optional(t.String()),
+});
 
 export const userData = t.Object({
   userId: t.String(),
@@ -59,11 +65,7 @@ export const userDeleteResponse = {
 };
 
 export const userPublicGetResponse = {
-  200: t.Object({
-    username: t.String(),
-    bio: t.String(),
-    status: t.String(),
-  }),
+  200: t.Object({ user: userDataPublic }),
   404: t.Object({ error: t.String() }),
 };
 
