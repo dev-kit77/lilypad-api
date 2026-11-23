@@ -1,0 +1,252 @@
+/**
+ * POST /api/auth/sign-up/email
+ *
+ * Request:  { name: string; email: string; password: string }
+ *           name <= 100 chars, valid email, password >= 8 chars.
+ * Auth:     none
+ *
+ * Expected 200: Better Auth session payload, e.g.
+ *   { token: string; user: { id, name, email, emailVerified, image, ... } }
+ * Side effect: creates UserProfile (bio "", status "") + UserSettings defaults.
+ *
+ * Expected 400: { code: "VALIDATION" } (thrown by the before-hook)
+ * Expected 422: Better Auth error for duplicate email / weak password.
+ */
+
+/**
+ * POST /api/auth/sign-in/email
+ *
+ * Request:  { email: string; password: string }
+ * Auth:     none
+ *
+ * Expected 200: Better Auth session payload + `Set-Cookie` session cookie.
+ *   { token: string; user: { id, name, email, ... } }
+ * Expected 401: invalid credentials.
+ */
+
+/**
+ * POST /api/auth/sign-out
+ *
+ * Request:  none (session cookie)
+ * Auth:     session
+ *
+ * Expected 200: { success: true }
+ * Expected 401: no session.
+ */
+
+/**
+ * GET /api/auth/get-session
+ *
+ * Request:  none (session cookie)
+ * Auth:     session
+ *
+ * Expected 200: {
+ *   session: { id, token, userId, expiresAt, ... },
+ *   user: { id, name, email, emailVerified, image, role, ... }
+ * }
+ * Expected 200 (no session): null
+ */
+
+/**
+ * GET /api/user
+ *
+ * Request:  none
+ * Auth:     session
+ *
+ * Expected 200: { user: UserData }
+ *   e.g. { user: { userId, username, status?, bio?,
+ *                  settings: { dark, anon } } }
+ * Expected 401: no session / unknown session user.
+ * Expected 403: { error: "USER_BANNED" } (active ban).
+ * Expected 404: { error: "INVALID_USER" }.
+ */
+
+/**
+ * PUT /api/user
+ *
+ * Request (at least one field):
+ *   { username?: string (1-100); status?: string (1-100);
+ *     bio?: string (1-100); settings?: { dark?: boolean; anon?: boolean } }
+ * Auth:     session
+ *
+ * Expected 200: { user: UserData } (updated values)
+ * Expected 400: { error: "INVALID_FIELD" } (empty body)
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_USER" }.
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * DELETE /api/user
+ *
+ * Request:  none
+ * Auth:     session
+ *
+ * Behaviour: deletes sessions + accounts, anonymises name/email/image,
+ *            blanks profile, forces anon settings on. Authored posts remain.
+ *
+ * Expected 200: { status: "OK" }
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_USER" }.
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * GET /api/user/gdpr-sar
+ *
+ * Request:  none
+ * Auth:     session
+ *
+ * Expected 200: downloadable JSON (Content-Disposition attachment) with:
+ *   {
+ *     generatedAt: string,
+ *     requestType: "GDPR_ARTICLE_15_SAR",
+ *     user: <full user incl. profile + settings>,
+ *     posts: Array<post & { _count: { upvotes, postReplies } }>,
+ *     reportsFiled: Array<report>,
+ *     reportsAgainstUser: Array<report with reporter anonymised>
+ *   }
+ * NOTE: contains report data — omit or strip if the client must have no
+ *       report surface at all.
+ *
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_USER" }.
+ */
+
+/**
+ * GET /api/user/:userId
+ *
+ * Request:  path param `userId`
+ * Auth:     session
+ *
+ * Expected 200: { username: string; bio: string; status: string }
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_USER" }.
+ */
+
+/**
+ * GET /api/feed-spatial?lat=&lon=
+ *
+ * Request:  query { lat: number (-90..90); lon: number (-180..180) }
+ * Auth:     session
+ *
+ * Expected 200: { posts: SpatialPostItem[] }
+ *   Root posts within 1 km, sorted ascending by distanceKm, hidden excluded.
+ *   distanceKm is rounded to 2 decimals.
+ * Expected 400: { error: "INVALID_FIELD" } (missing/invalid coords).
+ * Expected 401: no session.
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * GET /api/content
+ *
+ * Request:  none
+ * Auth:     session
+ *
+ * Expected 200: {
+ *   posts: PostItem[],     // current user's root posts
+ *   comments: PostItem[]   // current user's replies
+ * }
+ * Expected 401: no session.
+ */
+
+/**
+ * POST /api/content/post
+ *
+ * Request:  { content: string (1-255);
+ *             locality: { lat: number (-90..90); lon: number (-180..180) } }
+ * Auth:     session
+ *
+ * Expected 200: { post: PostItem }
+ * Expected 400: { error: "INVALID_FIELD" } (empty content / missing coords).
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_ID" }.
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * GET /api/content/post/:postId
+ *
+ * Request:  path param `postId` (CUID)
+ * Auth:     session
+ *
+ * Expected 200: { post: PostItem }
+ * Expected 401: no session.
+ * Expected 403: { error: "INVALID_USER" } (post is hidden).
+ * Expected 404: { error: "INVALID_ID" }.
+ */
+
+/**
+ * PUT /api/content/post/:postId
+ *
+ * Request:  path `postId`; body { content: string (min 1) }
+ * Auth:     session (must be the post author)
+ *
+ * Expected 200: { post: PostItem } (with `updated` timestamp set)
+ * Expected 400: { error: "INVALID_FIELD" }.
+ * Expected 401: no session.
+ * Expected 403: { error: "INVALID_USER" } (not author).
+ * Expected 404: { error: "INVALID_ID" }.
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * DELETE /api/content/post/:postId
+ *
+ * Request:  path param `postId`
+ * Auth:     session (must be the post author)
+ *
+ * Expected 200: { status: "OK" }
+ * Expected 401: no session.
+ * Expected 403: { error: "INVALID_USER" } (not author).
+ * Expected 404: { error: "INVALID_ID" }.
+ * Expected 500: { error: "INVALID_FIELD" | "INTERNAL_SERVER" }.
+ */
+
+/**
+ * PUT /api/content/post/:postId/upvote
+ *
+ * Request:  path param `postId` (no body)
+ * Auth:     session
+ *
+ * Behaviour: toggles the current user's upvote (connect/disconnect).
+ *
+ * Expected 200: { post: PostItem } (with updated `upvotes` count)
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_ID" }.
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * POST /api/content/post/:postId/reply
+ *
+ * Request:  path `postId`; body { content: string (min 1) }
+ * Auth:     session
+ *
+ * Expected 200: { post: PostItem } (the created reply, with `replyingTo`)
+ * Expected 400: { error: "INVALID_FIELD" } (empty content).
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_ID" } (parent missing or hidden).
+ * Expected 500: { error: "INTERNAL_SERVER" }.
+ */
+
+/**
+ * GET /api/content/post/:postId/reply
+ *
+ * Request:  path param `postId`
+ * Auth:     session
+ *
+ * Expected 200: { replies: PostItem[] } (newest first, hidden excluded)
+ * Expected 401: no session.
+ * Expected 404: { error: "INVALID_ID" } (parent post missing).
+ */
+
+/**
+ * GET /api/
+ *
+ * Request:  none
+ * Auth:     none
+ *
+ * Expected 200: { ok: true }
+ */

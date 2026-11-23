@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "post" ALTER COLUMN "updated" DROP NOT NULL,
+ALTER COLUMN "updated" DROP DEFAULT;
