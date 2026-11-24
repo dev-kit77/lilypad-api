@@ -61,6 +61,7 @@ export const contentController = new Elysia().use(authPlugin).get(
       include: {
         user: { include: { settings: true } },
         _count: { select: { upvotes: true, postReplies: true } },
+        upvotes: { where: {id: user.id }, select: { id: true } }
       },
     });
 
@@ -69,11 +70,12 @@ export const contentController = new Elysia().use(authPlugin).get(
     const toItem = (post: (typeof posts)[number]) => ({
       id: post.CUID,
       content: post.content,
-      ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+      ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
       username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
       time: post.time,
       ...(post.updated ? { updated: post.updated } : {}),
       upvotes: post._count.upvotes,
+      upvoted: post.upvotes.length > 0,
       ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
       replyCount: post._count.postReplies,
       distanceKm: Math.round((distanceMap.get(post.CUID) ?? 0) / 10) / 100,

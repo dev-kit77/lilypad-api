@@ -39,20 +39,22 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
         orderBy: { time: "desc" },
       });
 
       const toItem = (post: (typeof rows)[number]) => ({
-        id: post.CUID,
-        content: post.content,
-        ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
-        username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
-        time: post.time,
-        ...(post.updated ? { updated: post.updated } : {}),
-        upvotes: post._count.upvotes,
-        ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
-        replyCount: post._count.postReplies,
+          id: post.CUID,
+          content: post.content,
+          ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
+          time: post.time,
+          ...(post.updated ? { updated: post.updated } : {}),
+          upvotes: post._count.upvotes,
+          upvoted: post.upvotes.length > 0,
+          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
+          replyCount: post._count.postReplies,
       });
 
       const rootPosts = rows.filter((p) => p.replyingToID == null);
@@ -190,6 +192,7 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
       });
 
@@ -205,11 +208,12 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
           username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          upvoted: post.upvotes.length > 0,
           ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
@@ -238,6 +242,7 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
       });
 
@@ -264,6 +269,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          upvoted: post.upvotes.length > 0,
           ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
@@ -413,6 +419,7 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
       });
 
@@ -428,11 +435,12 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
           username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          upvoted: post.upvotes.length > 0,
           ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
@@ -524,6 +532,7 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
       });
 
@@ -539,11 +548,12 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
           username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          upvoted: post.upvotes.length > 0,
           ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
@@ -611,6 +621,7 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
       });
 
@@ -631,6 +642,7 @@ export const contentController = new Elysia()
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
+          upvoted: post.upvotes.length > 0,
           ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
           replyCount: post._count.postReplies,
         },
@@ -739,6 +751,7 @@ export const contentController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: {id: user.id }, select: { id: true } }
         },
         orderBy: { time: "desc" },
       });
@@ -750,15 +763,16 @@ export const contentController = new Elysia()
 
       return {
         replies: replies.map((post) => ({
-          id: post.CUID,
-          content: post.content,
-          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
-          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
-          time: post.time,
-          ...(post.updated ? { updated: post.updated } : {}),
-          upvotes: post._count.upvotes,
-          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
-          replyCount: post._count.postReplies,
+            id: post.CUID,
+            content: post.content,
+            ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
+            username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
+            time: post.time,
+            ...(post.updated ? { updated: post.updated } : {}),
+            upvotes: post._count.upvotes,
+            upvoted: post.upvotes.length > 0,
+            ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
+            replyCount: post._count.postReplies,
         })),
       };
     },
