@@ -10,7 +10,7 @@ import { ERROR_CODES } from "../../models/error.models";
 
 export const contentController = new Elysia().use(authPlugin).get(
   "/feed-spatial",
-  async ({ query, set }) => {
+  async ({ user, query, set }) => {
     log.out(`GET requested at /feed-spatial`, "feed-controller");
 
     const DISTANCE = 1000;
@@ -69,8 +69,8 @@ export const contentController = new Elysia().use(authPlugin).get(
     const toItem = (post: (typeof posts)[number]) => ({
       id: post.CUID,
       content: post.content,
-      ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-      username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+      ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+      username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
       time: post.time,
       ...(post.updated ? { updated: post.updated } : {}),
       upvotes: post._count.upvotes,

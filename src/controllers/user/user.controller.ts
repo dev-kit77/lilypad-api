@@ -344,29 +344,34 @@ export const userController = new Elysia()
   )
   .get(
     "/user/:userId",
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       log.out(`GET request at /user/${params.userId}`, "user-controller");
 
       log.out(`Querying profile for ${params.userId}`, "user-controller");
 
-      const profile = await prisma.userProfile.findUnique({
-        where: { userID: params.userId },
+      const fetchedUser = await prisma.user.findUnique({
+        where: { id: params.userId },
+        include: { settings: true, profile: true },
       });
 
-      if (!profile) {
+      if (!fetchedUser) {
         set.status = 404;
         log.err(404, `Invalid user: ${params.userId}`, "user-controller");
         return { error: ERROR_CODES.INVALID_USER };
+      } else if (fetchedUser.settings?.anon == true) {
+        set.status = 403;
+        log.err(403, `Invalid Permission: ${params.userId}`, "user-controller");
+        return { error: ERROR_CODES.FORBIDDEN_ROLE };
       }
 
       log.success(`Profile found for ${params.userId}`, "user-controller");
 
       return {
         user: {
-          userId: profile.userID,
-          username: profile.name,
-          bio: profile.bio,
-          status: profile.status,
+          userId: fetchedUser.profile!.userID,
+          username: fetchedUser.profile!.name,
+          bio: fetchedUser.profile!.bio,
+          status: fetchedUser.profile!.status,
           }
       };
     },

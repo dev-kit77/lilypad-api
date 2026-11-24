@@ -53,8 +53,8 @@ export const adminController = new Elysia()
       const toItem = (post: (typeof rows)[number]) => ({
         id: post.CUID,
         content: post.content,
-        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-        username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        userID: post.userID,
+        username: post.user.name,
         time: post.time,
         ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
@@ -170,8 +170,8 @@ export const adminController = new Elysia()
           post: {
             id: post.CUID,
             content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            userID: post.userID,
+            username: post.user.name,
             time: post.time,
             ...(post.updated ? { updated: post.updated } : {}),
             upvotes: post._count.upvotes,

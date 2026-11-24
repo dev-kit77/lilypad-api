@@ -46,8 +46,8 @@ export const contentController = new Elysia()
       const toItem = (post: (typeof rows)[number]) => ({
         id: post.CUID,
         content: post.content,
-        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-        username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+        username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
         time: post.time,
         ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
@@ -205,8 +205,8 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
@@ -227,7 +227,7 @@ export const contentController = new Elysia()
   )
   .get(
     "/content/post/:postId",
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       log.out(
         `GET request at /content/post/${params.postId}`,
         "content-controller",
@@ -259,8 +259,8 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
@@ -428,8 +428,8 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
@@ -539,8 +539,8 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
@@ -626,8 +626,8 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
@@ -712,7 +712,7 @@ export const contentController = new Elysia()
    */
   .get(
     "/content/post/:postId/reply",
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       log.out(
         `GET request at /content/post/${params.postId}/reply`,
         "content-controller",
@@ -752,8 +752,8 @@ export const contentController = new Elysia()
         replies: replies.map((post) => ({
           id: post.CUID,
           content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          username: post.user.settings?.anon ? "Anonymous" : post.user.name,
+          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
           upvotes: post._count.upvotes,
