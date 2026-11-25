@@ -123,15 +123,15 @@ describe("Content endpoints", () => {
   });
 
   describe("GET /api/content (authenticated)", () => {
-    it("returns 200 with posts and comments arrays", async () => {
+    it("returns 200 with posts and replies arrays", async () => {
       const res = await authedFetch("/content", session.cookie);
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as ApiResponse;
       expect(body.posts).toBeDefined();
-      expect(body.comments).toBeDefined();
+      expect(body.replies).toBeDefined();
       expect(Array.isArray(body.posts)).toBe(true);
-      expect(Array.isArray(body.comments)).toBe(true);
+      expect(Array.isArray(body.replies)).toBe(true);
     });
   });
 

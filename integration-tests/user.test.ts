@@ -186,9 +186,10 @@ describe("User endpoints", () => {
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as Record<string, unknown>;
-      expect(body).toHaveProperty("name");
-      expect(body).toHaveProperty("bio");
-      expect(body).toHaveProperty("status");
+      const user = body.user as Record<string, unknown>;
+      expect(user).toHaveProperty("username");
+      expect(user).toHaveProperty("bio");
+      expect(user).toHaveProperty("status");
     });
 
     it("returns 404 for a non-existent userId", async () => {
@@ -244,7 +245,8 @@ describe("User endpoints", () => {
         session.cookie,
       );
       const getBody = (await getRes.json()) as Record<string, unknown>;
-      expect(getBody.bio as string).toBe(uniqueBio);
+      const user = getBody.user as Record<string, unknown>;
+      expect(user.bio as string).toBe(uniqueBio);
     });
 
     it("returns 200 when updating settings (dark mode)", async () => {

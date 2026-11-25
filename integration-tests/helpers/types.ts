@@ -55,7 +55,7 @@ export interface OkResponse {
 
 export interface ApiResponse {
   posts?: Post[];
-  comments?: Post[];
+  replies?: Post[];
   post?: Post;
   user?: User;
   reports?: Report[];
