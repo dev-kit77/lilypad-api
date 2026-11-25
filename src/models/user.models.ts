@@ -1,6 +1,12 @@
 import { t } from "elysia";
-import { postItem } from "./content.models";
 import { reportItem } from "./admin.models";
+
+export const userDataPublic = t.Object({
+  userId: t.String(),
+  username: t.String(),
+  status: t.Optional(t.String()),
+  bio: t.Optional(t.String()),
+});
 
 export const userData = t.Object({
   userId: t.String(),
@@ -10,6 +16,8 @@ export const userData = t.Object({
   settings: t.Object({
     dark: t.Boolean(),
     anon: t.Boolean(),
+    push: t.Boolean(),
+    sysTheme: t.Boolean(),
   }),
   flagged: t.Optional(t.Array(t.String())),
   active: t.Optional(t.Integer()),
@@ -42,6 +50,8 @@ export const userUpdateBody = t.Object({
     t.Object({
       dark: t.Optional(t.Boolean()),
       anon: t.Optional(t.Boolean()),
+      push: t.Optional(t.Boolean()),
+      sysTheme: t.Optional(t.Boolean()),
     }),
   ),
 });
@@ -59,11 +69,7 @@ export const userDeleteResponse = {
 };
 
 export const userPublicGetResponse = {
-  200: t.Object({
-    name: t.String(),
-    bio: t.String(),
-    status: t.String(),
-  }),
+  200: t.Object({ user: userDataPublic }),
   404: t.Object({ error: t.String() }),
 };
 

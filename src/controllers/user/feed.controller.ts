@@ -10,7 +10,7 @@ import { ERROR_CODES } from "../../models/error.models";
 
 export const contentController = new Elysia().use(authPlugin).get(
   "/feed-spatial",
-  async ({ query, set }) => {
+  async ({ user, query, set }) => {
     log.out(`GET requested at /feed-spatial`, "feed-controller");
 
     const DISTANCE = 1000;
@@ -61,26 +61,34 @@ export const contentController = new Elysia().use(authPlugin).get(
       include: {
         user: { include: { settings: true } },
         _count: { select: { upvotes: true, postReplies: true } },
+        upvotes: { where: {id: user.id }, select: { id: true } }
       },
     });
 
     log.success(`Found ${posts.length} nearby posts`, "feed-controller");
 
+    const toItem = (post: (typeof posts)[number]) => ({
+      id: post.CUID,
+      content: post.content,
+      ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
+      username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
+      time: post.time,
+      ...(post.updated ? { updated: post.updated } : {}),
+      upvotes: post._count.upvotes,
+      upvoted: post.upvotes.length > 0,
+      ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
+      replyCount: post._count.postReplies,
+      distanceKm: Math.round((distanceMap.get(post.CUID) ?? 0) / 10) / 100,
+    });
+
+    const rootPosts = posts.filter((p) => p.replyingToID == null);
+    const replyPosts = posts.filter((p) => p.replyingToID != null);
+
     return {
-      posts: posts
-        .map((post) => ({
-          id: post.CUID,
-          content: post.content,
-          ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-          author: post.user.settings?.anon ? "Anonymous" : post.user.name,
-          time: post.time,
-          ...(post.updated ? { updated: post.updated } : {}),
-          upvotes: post._count.upvotes,
-          ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
-          replyCount: post._count.postReplies,
-          distanceKm: Math.round((distanceMap.get(post.CUID) ?? 0) / 10) / 100,
-        }))
+      posts: rootPosts
+        .map(toItem)
         .sort((a, b) => a.distanceKm - b.distanceKm),
+      replies: replyPosts.map(toItem)
     };
   },
   {

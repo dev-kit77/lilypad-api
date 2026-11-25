@@ -11,6 +11,8 @@ export interface User {
 export interface UserSettings {
   dark?: boolean;
   anon?: boolean;
+  push?: boolean;
+  sysTheme?: boolean;
 }
 
 export interface Post {
@@ -53,7 +55,7 @@ export interface OkResponse {
 
 export interface ApiResponse {
   posts?: Post[];
-  comments?: Post[];
+  replies?: Post[];
   post?: Post;
   user?: User;
   reports?: Report[];

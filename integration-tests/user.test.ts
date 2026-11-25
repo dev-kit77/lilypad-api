@@ -87,6 +87,14 @@ describe("User endpoints", () => {
       expect(body.user).toHaveProperty("userId");
       expect(body.user).toHaveProperty("username");
       expect(body.user).toHaveProperty("settings");
+
+      const settings = (body.user as Record<string, unknown>).settings as
+        | Record<string, unknown>
+        | undefined;
+      expect(settings).toHaveProperty("dark");
+      expect(settings).toHaveProperty("anon");
+      expect(settings).toHaveProperty("push");
+      expect(settings).toHaveProperty("sysTheme");
     });
   });
 
@@ -178,9 +186,10 @@ describe("User endpoints", () => {
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as Record<string, unknown>;
-      expect(body).toHaveProperty("name");
-      expect(body).toHaveProperty("bio");
-      expect(body).toHaveProperty("status");
+      const user = body.user as Record<string, unknown>;
+      expect(user).toHaveProperty("username");
+      expect(user).toHaveProperty("bio");
+      expect(user).toHaveProperty("status");
     });
 
     it("returns 404 for a non-existent userId", async () => {
@@ -236,7 +245,8 @@ describe("User endpoints", () => {
         session.cookie,
       );
       const getBody = (await getRes.json()) as Record<string, unknown>;
-      expect(getBody.bio as string).toBe(uniqueBio);
+      const user = getBody.user as Record<string, unknown>;
+      expect(user.bio as string).toBe(uniqueBio);
     });
 
     it("returns 200 when updating settings (dark mode)", async () => {
@@ -275,6 +285,21 @@ describe("User endpoints", () => {
           >
         ).anon as boolean,
       ).toBe(true);
+    });
+
+    it("returns 200 when updating push and system theme settings", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ settings: { push: false, sysTheme: true } }),
+      });
+      expect(res.status).toBe(200);
+
+      const getRes = await authedFetch("/user", session.cookie);
+      const getBody = (await getRes.json()) as Record<string, unknown>;
+      const settings = (getBody.user as Record<string, unknown>)
+        .settings as Record<string, unknown>;
+      expect(settings.push).toBe(false);
+      expect(settings.sysTheme).toBe(true);
     });
 
     it("returns 200 when updating multiple fields at once", async () => {

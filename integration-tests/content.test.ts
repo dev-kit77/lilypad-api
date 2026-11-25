@@ -123,15 +123,15 @@ describe("Content endpoints", () => {
   });
 
   describe("GET /api/content (authenticated)", () => {
-    it("returns 200 with posts and comments arrays", async () => {
+    it("returns 200 with posts and replies arrays", async () => {
       const res = await authedFetch("/content", session.cookie);
       expect(res.status).toBe(200);
 
       const body = (await res.json()) as ApiResponse;
       expect(body.posts).toBeDefined();
-      expect(body.comments).toBeDefined();
+      expect(body.replies).toBeDefined();
       expect(Array.isArray(body.posts)).toBe(true);
-      expect(Array.isArray(body.comments)).toBe(true);
+      expect(Array.isArray(body.replies)).toBe(true);
     });
   });
 
@@ -411,11 +411,11 @@ describe("Content endpoints", () => {
       );
       expect(getRes.status).toBe(200);
 
-      const getBody = (await getRes.json()) as Record<string, unknown>;
-      expect(getBody).toHaveProperty("post");
-      expect((getBody.post as Record<string, unknown>).id).toBe(
-        createBody.post.id,
-      );
+      const getBody = (await getRes.json()) as {
+        post: { id: string; userID?: string };
+      };
+      expect(getBody.post.id).toBe(createBody.post.id);
+      expect(getBody.post.userID).toBe(session.userId);
     });
   });
 
@@ -547,9 +547,10 @@ describe("Content endpoints", () => {
       );
       expect(upvoteRes.status).toBe(200);
       const upvoteBody = (await upvoteRes.json()) as {
-        post: { upvotes: number };
+        post: { upvotes: number; userID?: string };
       };
       expect(upvoteBody.post.upvotes).toBe(1);
+      expect(upvoteBody.post.userID).toBe(session.userId);
     });
 
     it("returns 200 and toggles upvote off when already upvoted", async () => {

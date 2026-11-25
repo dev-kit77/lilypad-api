@@ -7,8 +7,9 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { log } from "../log";
 
 export const auth = betterAuth({
+  appName:"lilypad-API",
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: "https:89f7-2a00-23c8-6aa-2801-fc61-7d33-b10a-2f58.ngrok-free.app",
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -22,7 +23,7 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:8080",
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://89f7-2a00-23c8-6aa-2801-fc61-7d33-b10a-2f58.ngrok-free.app",
   ],
   advanced: {
     database: {
@@ -38,6 +39,7 @@ export const auth = betterAuth({
         log.out(`POST request at /api/auth/sign-up/email`, "auth-controller");
 
         if (!body) {
+          log.out(`Invalid body: ${body}`, "auth-controller");
           throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
         }
 
@@ -45,22 +47,29 @@ export const auth = betterAuth({
         const email = body.email as string | undefined;
         const password = body.password as string | undefined;
 
-        if (!name || typeof name !== "string" || name.trim().length === 0) {
-          throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
-        }
-        if (name.trim().length > 100) {
-          throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
-        }
-
-        if (!email || typeof email !== "string") {
-          throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
-        }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email) || email.trim().length > 100) {
-          throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
-        }
 
-        if (!password || typeof password !== "string" || password.length < 8) {
+        if (
+          !name ||
+          typeof name !== "string" ||
+          name.trim().length === 0 ||
+          name.trim().length > 64
+        ) {
+          log.out(`Invalid name: ${name}`, "auth-controller");
+          throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
+        } else if (
+          !email ||
+          typeof email !== "string" ||
+          !emailRegex.test(email)
+        ) {
+          log.out(`Invalid email: ${email}`, "auth-controller");
+          throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
+        } else if (
+          !password ||
+          typeof password !== "string" ||
+          password.length < 8
+        ) {
+          log.out(`Invalid password: ${password}`, "auth-controller");
           throw new APIError("BAD_REQUEST", { code: "VALIDATION" });
         }
 

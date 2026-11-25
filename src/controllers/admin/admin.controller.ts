@@ -16,7 +16,7 @@ export const adminController = new Elysia()
   .use(authPlugin)
   .get(
     "/content/user/:userId/special",
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       log.out(
         `GET request at /content/user/${params.userId}`,
         "admin-controller",
@@ -41,6 +41,7 @@ export const adminController = new Elysia()
         include: {
           user: { include: { settings: true } },
           _count: { select: { upvotes: true, postReplies: true } },
+          upvotes: { where: { id: user.id }, select: { id: true } },
         },
         orderBy: { time: "desc" },
       });
@@ -53,11 +54,12 @@ export const adminController = new Elysia()
       const toItem = (post: (typeof rows)[number]) => ({
         id: post.CUID,
         content: post.content,
-        ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-        author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+        userID: post.userID,
+        username: post.user.name,
         time: post.time,
         ...(post.updated ? { updated: post.updated } : {}),
         upvotes: post._count.upvotes,
+        upvoted: post.upvotes.length > 0,
         ...(post.replyingToID ? { replyingTo: post.replyingToID } : {}),
         replyCount: post._count.postReplies,
       });
@@ -67,7 +69,7 @@ export const adminController = new Elysia()
 
       return {
         posts: rootPosts.map(toItem),
-        comments: replyPosts.map(toItem),
+        replies: replyPosts.map(toItem),
       };
     },
     {
@@ -141,7 +143,7 @@ export const adminController = new Elysia()
   )
   .get(
     "/content/post/:postId/special",
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       log.out(
         `GET request at /content/post/${params.postId}/special`,
         "admin-controller",
@@ -153,6 +155,7 @@ export const adminController = new Elysia()
           include: {
             user: { include: { settings: true } },
             _count: { select: { upvotes: true, postReplies: true } },
+            upvotes: { where: { id: user.id }, select: { id: true } },
           },
         });
 
@@ -170,11 +173,12 @@ export const adminController = new Elysia()
           post: {
             id: post.CUID,
             content: post.content,
-            ...(post.user.settings?.anon ? { userID: post.userID } : {}),
-            author: post.user.settings?.anon ? "Anonymous" : post.user.name,
+            userID: post.userID,
+            username: post.user.name,
             time: post.time,
             ...(post.updated ? { updated: post.updated } : {}),
             upvotes: post._count.upvotes,
+            upvoted: post.upvotes.length > 0,
             replyCount: post._count.postReplies,
           },
         };
