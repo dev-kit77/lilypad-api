@@ -87,6 +87,14 @@ describe("User endpoints", () => {
       expect(body.user).toHaveProperty("userId");
       expect(body.user).toHaveProperty("username");
       expect(body.user).toHaveProperty("settings");
+
+      const settings = (body.user as Record<string, unknown>).settings as
+        | Record<string, unknown>
+        | undefined;
+      expect(settings).toHaveProperty("dark");
+      expect(settings).toHaveProperty("anon");
+      expect(settings).toHaveProperty("push");
+      expect(settings).toHaveProperty("sysTheme");
     });
   });
 
@@ -275,6 +283,21 @@ describe("User endpoints", () => {
           >
         ).anon as boolean,
       ).toBe(true);
+    });
+
+    it("returns 200 when updating push and system theme settings", async () => {
+      const res = await authedFetch("/user", session.cookie, {
+        method: "PUT",
+        body: JSON.stringify({ settings: { push: false, sysTheme: true } }),
+      });
+      expect(res.status).toBe(200);
+
+      const getRes = await authedFetch("/user", session.cookie);
+      const getBody = (await getRes.json()) as Record<string, unknown>;
+      const settings = (getBody.user as Record<string, unknown>)
+        .settings as Record<string, unknown>;
+      expect(settings.push).toBe(false);
+      expect(settings.sysTheme).toBe(true);
     });
 
     it("returns 200 when updating multiple fields at once", async () => {

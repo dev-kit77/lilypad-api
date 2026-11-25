@@ -119,6 +119,10 @@ model UserSettings {
   privilege Boolean  @default(false)
   ///Dark flag for dark mode preference
   dark      Boolean  @default(false)
+  ///Push flag for app notifications
+  push      Boolean @default(true)
+  ///Push flag for app notifications
+  sysTheme      Boolean @default(true)
   ///Anonymous flag for anonymous user accounts
   anon      Boolean  @default(false)
 

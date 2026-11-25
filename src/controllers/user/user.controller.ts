@@ -117,6 +117,8 @@ export const userController = new Elysia()
           settings: {
             dark: dbUser.settings?.dark ?? false,
             anon: dbUser.settings?.anon ?? false,
+            push: dbUser.settings?.push ?? true,
+            sysTheme: dbUser.settings?.sysTheme ?? true,
           },
         },
       };
@@ -240,6 +242,8 @@ export const userController = new Elysia()
           settings: {
             dark: res.settings?.dark ?? false,
             anon: res.settings?.anon ?? false,
+            push: res.settings?.push ?? true,
+            sysTheme: res.settings?.sysTheme ?? true,
           },
         },
       };

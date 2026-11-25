@@ -16,6 +16,8 @@ export const userData = t.Object({
   settings: t.Object({
     dark: t.Boolean(),
     anon: t.Boolean(),
+    push: t.Boolean(),
+    sysTheme: t.Boolean(),
   }),
   flagged: t.Optional(t.Array(t.String())),
   active: t.Optional(t.Integer()),
@@ -48,6 +50,8 @@ export const userUpdateBody = t.Object({
     t.Object({
       dark: t.Optional(t.Boolean()),
       anon: t.Optional(t.Boolean()),
+      push: t.Optional(t.Boolean()),
+      sysTheme: t.Optional(t.Boolean()),
     }),
   ),
 });

@@ -264,7 +264,7 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
           username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),
@@ -637,7 +637,7 @@ export const contentController = new Elysia()
         post: {
           id: post.CUID,
           content: post.content,
-          ...(!post.user.settings?.anon || user.id == post.userID ? {} : { userID: post.userID }),
+          ...(!post.user.settings?.anon || user.id == post.userID ? { userID: post.userID } : {}),
           username: !post.user.settings?.anon || user.id == post.userID ? post.user.name : "Anonymous",
           time: post.time,
           ...(post.updated ? { updated: post.updated } : {}),

@@ -411,11 +411,11 @@ describe("Content endpoints", () => {
       );
       expect(getRes.status).toBe(200);
 
-      const getBody = (await getRes.json()) as Record<string, unknown>;
-      expect(getBody).toHaveProperty("post");
-      expect((getBody.post as Record<string, unknown>).id).toBe(
-        createBody.post.id,
-      );
+      const getBody = (await getRes.json()) as {
+        post: { id: string; userID?: string };
+      };
+      expect(getBody.post.id).toBe(createBody.post.id);
+      expect(getBody.post.userID).toBe(session.userId);
     });
   });
 
@@ -547,9 +547,10 @@ describe("Content endpoints", () => {
       );
       expect(upvoteRes.status).toBe(200);
       const upvoteBody = (await upvoteRes.json()) as {
-        post: { upvotes: number };
+        post: { upvotes: number; userID?: string };
       };
       expect(upvoteBody.post.upvotes).toBe(1);
+      expect(upvoteBody.post.userID).toBe(session.userId);
     });
 
     it("returns 200 and toggles upvote off when already upvoted", async () => {

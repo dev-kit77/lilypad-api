@@ -11,6 +11,8 @@ export interface User {
 export interface UserSettings {
   dark?: boolean;
   anon?: boolean;
+  push?: boolean;
+  sysTheme?: boolean;
 }
 
 export interface Post {
